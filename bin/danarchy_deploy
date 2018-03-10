@@ -67,7 +67,6 @@ if !deployment && !options[:deploy_file] && cdb
   puts "CouchDB connection found! Loading deployment for #{cdb_config[:database]}:#{deployment_name}"
   deployment = cdb.get(cdb_config[:database], deployment_name)
   abort("ERROR: Deployment #{deployment_name} => #{deployment[:reason]}") if deployment[:error]
-
   puts "Found deployment: #{deployment[:_id]} | rev => #{deployment[:_rev]}"
   options[:deploy_file] = "#{options[:deploy_dir]}/#{deployment_name}/#{deployment_name}.json"
   puts "Temp JSON path: #{options[:deploy_file]}"
