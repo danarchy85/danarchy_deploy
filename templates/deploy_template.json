@@ -1,0 +1,98 @@
+{
+  "hostname": "hostname",
+  "os": "gentoo|debian|ubuntu",
+  "ipv4": "IPv4 to use for deployment",
+  "ssh_user": "deploy-user",
+  "ssh_key": "/home/path/to/deploy-user/ssh_key.",
+  "packages": [
+    "package1",
+    "package2"
+  ],
+  "users": [
+    {
+      "username": "username",
+      "home": "/home/username",
+      "uid": int,
+      "gid": int,
+      "sudoer": "username ALL = NOPASSWD: ALL",
+      "ssh-authorized_keys": [
+	"ssh-ed25519 it0C5o6GHC8lxqctpexakfdA5o7LeSe+QbMhIl+GYtZ2OCMFliLsODDrrazR+u2y user@hostname",
+	"ssh-rsa K0APeEvotGunpBrl/LvSAG/gLUldCnOrL60v47QYjuqoGJmM3Fk8V29+8jZPp9Dl user@hostname"
+      ],
+      "groups": [
+	int,
+	int
+      ],
+      "archives": [
+	{
+	  "target": "/path/to/extract/to/",
+	  "source": "/path/to/tarball.(tar.{gz,bz2}|zip)"
+	},
+	{
+	  "target": "/path/to/extract/to/",
+	  "data": "couchdb:base64_encoded_data"
+	}
+      ]
+    }
+  ],
+  "groups": [
+    {
+    "groupname": "groupname",
+    "gid": int,
+    }
+  ],
+  "services": {
+    "service_name": {
+      "init": {
+        "service": [
+          "enable",
+          "restart"
+        ]
+      }
+      "archives": [
+	{
+	  "target": "/path/to/extract/to/",
+	  "source": "/path/to/tarball.(tar.{gz,bz2}|zip)"
+	},
+	{
+	  "target": "/path/to/extract/to/",
+	  "data": "couchdb:base64_encoded_data"
+	}
+      ],
+      "templates": [
+	{
+	  "target": "/path/to/target/file",
+	  "source": "/path/to/source/erb",
+	  "dir_perms": {
+            "owner": "username",
+            "group": "groupname",
+            "mode": "0755"
+	  },
+	  "file_perms": {
+            "owner": "username",
+            "group": "groupname",
+            "mode": "0644"
+	  },
+	  "variables": {
+	    "var1": "value",
+	    "var2": "value"
+	  }
+	},
+	{
+	  "target": "/path/to/target/file",
+	  "data": "couchdb:base64_encoded_erb",
+	  "dir_perms": {
+            "owner": "username",
+            "group": "groupname",
+            "mode": "0755"
+	  },
+	  "file_perms": {
+            "owner": "username",
+            "group": "groupname",
+            "mode": "0644"
+	  }
+	}
+      ]
+    }
+  }
+}

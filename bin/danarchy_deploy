@@ -1,0 +1,115 @@
+#!/usr/bin/env ruby
+require_relative '../lib/danarchy_deploy'
+require 'danarchy_couchdb'
+require 'date'
+require 'optparse'
+
+deployment = nil
+options = { couchdb: "/home/#{ENV['SUDO_USER']}/.danarchy/danarchy_deploy/danarchy_deploy.json",
+            deploy_dir: '/danarchy/deploy',
+            deploy_file: nil,
+            pretend: false,
+            ssh_verbose: false,
+            first_run: false }
+
+ARGV.push('--help') if ARGV.empty?
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage: sudo #{$PROGRAM_NAME} (local|remote) --json /path/to/deployment.json [options]"
+
+  opts.on('-j=file', '--json=file', 'Read configuration from JSON file.') do |file|
+    require 'json'
+    options[:deploy_file] = file
+    deployment = JSON.parse(File.read(file), symbolize_names: true)
+  end
+
+  opts.on('-y=file', '--yaml=file', 'Read configuration from YAML file.') do |file|
+    require 'yaml'
+    options[:deploy_file] = file
+    deployment = YAML.load_file(file)
+  end
+
+  opts.on('-p', '--pretend', 'Pretend run: Don\'t take any action.') do |val|
+    options[:pretend] = true
+  end
+
+  opts.on('-f', '--first-run', 'First Run: Run as a first run causing services to run all init actions.') do |val|
+    options[:first_run] = true
+  end
+
+  opts.on('-d', '--deploy-dir', "Deployment directory. Defaults to '/danarchy/deploy'.") do |val|
+    options[:deploy_dir] = val.gsub(/\/$/, '')
+  end
+
+  opts.on('--ssh-verbose', "Verbose SSH stdout/stderr output.") do |val|
+    options[:ssh_verbose] = true
+  end
+
+  opts.on('--version', "Print #{$PROGRAM_NAME} version.") do |val|
+    puts "DanarchyDeploy: #{DanarchyDeploy::VERSION}"
+  end
+
+  opts.on('-h', '--help', 'Print this help info.') do |val|
+    puts opts, ''
+  end
+end.parse!
+
+puts "DanarchyDeploy: #{DanarchyDeploy::VERSION}"
+abort('Exiting! Must be run with sudo!') if Process.uid != 0
+
+location = ARGV.delete('remote') || ARGV.delete('local') || abort("ERROR: Need an option 'local' or 'remote' to know what to do!")
+cdb_config = File.exist?(options[:couchdb]) ? JSON.parse(File.read(options[:couchdb]), symbolize_names: true)[:couchdb] : nil
+cdb = DanarchyCouchDB::Connection.new(cdb_config) if cdb_config
+
+if !deployment && !options[:deploy_file] && cdb
+  deployment_name = ARGV.shift
+  abort("Need a deployment name!") if !deployment_name
+  puts "DanarchyCouchDB: #{DanarchyCouchDB::VERSION}"
+  puts "CouchDB connection found! Loading deployment for #{cdb_config[:database]}:#{deployment_name}"
+  deployment = cdb.get(cdb_config[:database], deployment_name)
+  abort("ERROR: Deployment #{deployment_name} => #{deployment[:reason]}") if deployment[:error]
+
+  puts "Found deployment: #{deployment[:_id]} | rev => #{deployment[:_rev]}"
+  options[:deploy_file] = "#{options[:deploy_dir]}/#{deployment_name}/#{deployment_name}.json"
+  puts "Temp JSON path: #{options[:deploy_file]}"
+  File.write(options[:deploy_file], deployment.to_json)
+end  
+
+if !deployment[:last_deploy] || deployment[:last_deploy].empty?
+  puts "This looks like a first-time run since a last_deploy time wasn't found."
+  options[:first_run] = true
+end
+  
+if location == 'remote'
+  deployment = DanarchyDeploy::RemoteDeploy.new(deployment, options)
+elsif location == 'local'
+  puts "Deploying #{deployment[:hostname]} locally to #{`hostname`.chomp}."
+
+  if !options[:pretend]
+    puts ' ! Ctrl-c out if this is not what you want to do!'
+    10.downto(0) do |i|
+      trap('SIGINT') { abort("\nExiting!") }
+      print "\rDeploying in #{i} seconds"
+      sleep(1)
+    end
+
+    puts "\nDeploying!"
+  end
+
+  deployment = DanarchyDeploy::LocalDeploy.new(deployment, options)
+end
+
+if deployment && cdb && !options[:pretend]
+  puts "Saving deployment to CouchDB."
+  old_rev = cdb.get(cdb_config[:database], deployment_name)[:_rev]
+  save = cdb.put(cdb_config[:database], deployment[:_id], deployment)
+
+  if save[:ok] == true
+    puts '   |+ Saved deployment to CouchDB!'
+    puts "      |_id:  #{save[:id]}"
+    puts "      |_rev: #{save[:rev]}\n\n"
+  else
+    puts '   ! Unable to save deployment to CouchDB'
+    puts "      |_error: #{save[:error]}"
+    puts "      |_rev:   #{old_rev[:rev]}\n\n"
+  end
+end
