@@ -118,6 +118,7 @@ module DanarchyDeploy
           end
         end
 
+        f.chown(user[:uid], user[:gid])
         f.close
       end
     end
@@ -132,7 +133,6 @@ module DanarchyDeploy
           puts '   - No change needed'
         end
 
-        f.chown(user[:uid], user[:gid])
         f.close
       end
     end
