@@ -6,9 +6,9 @@ module DanarchyDeploy
       abort('Operating System not defined! Exiting!') if !deployment[:os]
       puts "\n" + self.name
 
-      installer, updater, cleaner, packages = prep_operating_system(deployment, options)
+      installer, updater, cleaner = prep_operating_system(deployment, options)
       install_result = nil
-      if packages
+      if deployment[:packages]
         packages = deployment[:packages].join(' ')
         install_result = DanarchyDeploy::Helpers.run_command("#{installer} #{packages}", options)
       else
