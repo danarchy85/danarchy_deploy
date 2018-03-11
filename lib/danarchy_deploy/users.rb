@@ -123,7 +123,7 @@ module DanarchyDeploy
 
     def self.sudoer(user)
       sudoer_file = '/etc/sudoers.d/danarchy_deploy-' + user[:username]
-      File.open(sudoer_file, 'r+') do |f|
+      File.open(sudoer_file, 'a+') do |f|
         if !f.read.include?(user[:sudoer])
           puts "   |+ Added: '#{user[:sudoer]}'"
           f.puts user[:sudoer]

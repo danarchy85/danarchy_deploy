@@ -6,11 +6,10 @@ module DanarchyDeploy
       abort('Operating System not defined! Exiting!') if !deployment[:os]
       puts "\n" + self.name
 
-      os = deployment[:os]
-      packages = deployment[:packages]
-      installer, updater, cleaner, packages = prep_operating_system(os, packages, options)
+      installer, updater, cleaner, packages = prep_operating_system(deployment, options)
       install_result = nil
       if packages
+        packages = deployment[:packages].join(' ')
         install_result = DanarchyDeploy::Helpers.run_command("#{installer} #{packages}", options)
       else
         puts 'No packages to install.'
@@ -30,21 +29,17 @@ module DanarchyDeploy
     end
 
     private
-    def self.prep_operating_system(os, packages, options)
+    def self.prep_operating_system(deployment, options)
       (installer, updater, cleaner) = nil
+      os = deployment[:os]
+
       if os.downcase == 'gentoo'
         puts "#{os.capitalize} detected! Using emerge."
+        installer  =  'emerge --usepkg --quiet --noreplace '
+        installer += '--pretend ' if options[:pretend]
 
-        if packages
-          installer  =  'emerge --usepkg --quiet --noreplace '
-          installer += '--pretend ' if options[:pretend]
-
-          packages.each do |pkg|
-            IO.popen("qlist -I #{pkg}") do |o|
-              packages.delete(pkg) if !o.read.empty?
-            end
-          end
-        end
+        # Build packages if template instance
+        installer.gsub('usepkg', 'buildpkg') if deployment[:hostname] =~ /^(image|template)/
 
         cleaner  = 'emerge --depclean --quiet '
         cleaner += '--pretend ' if options[:pretend]
@@ -66,21 +61,19 @@ module DanarchyDeploy
       elsif %w[centos redhat].include?(os.downcase)
         # needs more testing
         puts "#{os.capitalize} detected! Using yum."
-        if packages
-          installer = 'yum install -y '
+        installer = 'yum install -y '
 
-          packages.each do |pkg|
-            IO.popen("rpm -q #{pkg}") do |o|
-              packages.delete(pkg) if !o.read.include?('not installed')
-            end
-          end
-        end
+          # packages.each do |pkg|
+          #   IO.popen("rpm -q #{pkg}") do |o|
+          #     packages.delete(pkg) if !o.read.include?('not installed')
+          #   end
+          # end
 
         updater = nil
         cleaner = nil
       end
 
-      [installer, updater, cleaner, packages.join(' ')]
+      [installer, updater, cleaner]
     end
   end
 end
