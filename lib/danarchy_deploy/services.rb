@@ -7,15 +7,15 @@ module DanarchyDeploy
       deployment[:services].each do |service, params|
         puts "Configuring service: #{service}"
 
-        if params[:templates] && !params[:templates].empty?
-          puts " > COnfiguring templates for #{service}"
-          DanarchyDeploy::Templater.new(params[:templates], options)
-        end
-
         if params[:archives] && !params[:archives].empty?
           puts "\n" + self.name
           puts " > Deploying archives for #{service}"
           DanarchyDeploy::Archiver.new(params[:archives], options)
+        end
+
+        if params[:templates] && !params[:templates].empty?
+          puts " > COnfiguring templates for #{service}"
+          DanarchyDeploy::Templater.new(params[:templates], options)
         end
       end
 
