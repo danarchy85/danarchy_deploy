@@ -97,7 +97,7 @@ elsif location == 'local'
   deployment = DanarchyDeploy::LocalDeploy.new(deployment, options)
 end
 
-if deployment && cdb && !options[:pretend]
+if deployment && cdb && !options[:pretend] && options[:deploy_file] !~ /.*(json|yaml)$/
   puts "Saving deployment to CouchDB."
   old_rev = cdb.get(cdb_config[:database], deployment_name)[:_rev]
   save = cdb.put(cdb_config[:database], deployment[:_id], deployment)
