@@ -106,7 +106,8 @@ module DanarchyDeploy
       ssh_path = user[:home] + '/.ssh'
       authkeys = ssh_path + '/authorized_keys'
 
-      Dir.exist?(ssh_path) || Dir.mkdir(ssh_path)
+      Dir.exist?(ssh_path) || Dir.mkdir(ssh_path, 0700)
+      File.chown(user[:uid], user[:gid], ssh_path)
       File.open(authkeys, 'a+') do |f|
         user[:authorized_keys].each do |authkey|
           if !f.read.include?(authkey)
@@ -131,6 +132,7 @@ module DanarchyDeploy
           puts '   - No change needed'
         end
 
+        f.chown(user[:uid], user[:gid])
         f.close
       end
     end

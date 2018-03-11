@@ -28,7 +28,7 @@ module DanarchyDeploy
       deployment[:last_deploy] = DateTime.now.strftime("%Y/%m/%d %H:%M:%S")
       puts "\nFinished Local Deployment at #{deployment[:last_deploy]}!"
       File.write(options[:deploy_file],
-                 JSON.pretty_generate(deployment) if options[:deploy_file].end_with?('.json')
+                 JSON.pretty_generate(deployment)) if options[:deploy_file].end_with?('.json')
       File.write(options[:deploy_file], deployment.to_yaml) if options[:deploy_file].end_with?('.yaml')
       deployment
     end
