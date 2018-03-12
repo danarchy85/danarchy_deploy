@@ -23,7 +23,7 @@ module DanarchyDeploy
 
     private
     def self.groupadd(group, options)
-      groupadd_cmd  = "groupadd #{group[:groupname]} "
+      groupadd_cmd  = "sudo groupadd #{group[:groupname]} "
       groupadd_cmd += "--gid #{group[:gid]} " if group[:gid]
       groupadd_cmd += "--system " if group[:system]
       if options[:pretend]
@@ -34,7 +34,7 @@ module DanarchyDeploy
     end
 
     def self.groupdel(group, options)
-      groupdel_cmd = "groupdel #{group[:groupname]}"
+      groupdel_cmd = "sudo groupdel #{group[:groupname]}"
       if options[:pretend]
         puts "\tFake run: #{groupdel_cmd}"
       else
