@@ -58,7 +58,7 @@ module DanarchyDeploy
 
     private
     def self.useradd(user, options)
-      useradd_cmd  = "useradd #{user[:username]} "
+      useradd_cmd  = "sudo useradd #{user[:username]} "
       useradd_cmd += "--home-dir #{user[:home]} " if user[:home]
       useradd_cmd += "--uid #{user[:uid]} " if user[:uid]
       useradd_cmd += "--gid #{user[:gid]} " if user[:gid]
@@ -73,7 +73,7 @@ module DanarchyDeploy
     end
 
     def self.userdel(user, options)
-      userdel_cmd  = "userdel --remove #{user[:username]}"
+      userdel_cmd  = "sudo userdel --remove #{user[:username]}"
       if options[:pretend]
         puts "\tFake run: #{userdel_cmd}"
       else
@@ -94,7 +94,7 @@ module DanarchyDeploy
 
     def self.updategroups(user, options)
       groups = user[:groups].join(',')
-      groupupdate_cmd = "usermod #{user[:username]} --groups #{groups}"
+      groupupdate_cmd = "sudo usermod #{user[:username]} --groups #{groups}"
       if options[:pretend]
         puts "\tFake run: #{groupupdate_cmd}"
       else
