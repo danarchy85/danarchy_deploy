@@ -1,3 +1,4 @@
+require_relative 'archiver/svn'
 
 module DanarchyDeploy
   class Archiver
@@ -8,18 +9,14 @@ module DanarchyDeploy
         abort("No target destination set for archive: #{archive[:source]}!") if !archive[:target]
 
         tmparchive = false
-        if !archive[:source]
+        if !archive[:source] && archive[:data]
           archive[:source] = options[:deploy_dir] + "/.tmp_archive_#{DateTime.now.strftime("%Y%m%d_%H%M%S")}"
           tmparchive = true
-        end
-
-        if archive[:data]
           data = DanarchyDeploy::Helpers.decode_base64(archive[:data])
           write_tmp_archive(archive[:source], data)
         end
-        
-        puts " > Extracting #{archive[:source]} to #{archive[:target]}"
 
+        puts " > Extracting #{archive[:source]} to #{archive[:target]}"
         if !File.exist?(archive[:source])
           puts "    ! Source file not found!: #{archive[:source]}"
           return false
@@ -32,10 +29,11 @@ module DanarchyDeploy
         if archive_result[:stderr]
           puts '   ! Archive extraction failed!'
           abort("STDERR:\n#{archive_result[:stderr]}")
-        else
+        elsif archive_result[:stdout]
           puts "   |+ Archive extracted: #{archive[:source]}\n"
         end
 
+        set_target_ownership(archive[:target], archive[:perms]) if archive[:perms]
         cleanup_source_archive(archive[:source]) if tmparchive
       end
     end
@@ -61,6 +59,10 @@ module DanarchyDeploy
 
     def self.write_tmp_archive(source, data)
       File.write(source, data)
+    end
+
+    def self.set_target_ownership(target, perms)
+      FileUtils.chown_R(perms[:uid], perms[:gid], target)
     end
 
     def self.cleanup_source_archive(source)

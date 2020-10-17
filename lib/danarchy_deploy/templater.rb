@@ -6,10 +6,17 @@ module DanarchyDeploy
     def self.new(templates, options)
       puts "\n" + self.name
 
+      if templates.map(&:keys).flatten.include?(:remove)
+        puts ' > Removing templates tagged for removal.'
+        templates = remove_templates(templates, options)
+      end
+
       templates.each do |template|
+        next if template[:remove]
         abort("No target destination set for template: #{template[:source]}!") if !template[:target]
         abort("No source or data for template: #{template[:target]}") if !template[:source] && !template[:data]
-        
+        abort("Source file does not exist at: #{template[:source]}") if ! File.exist?(template[:source])
+
         target = template[:target]
         source = template[:source] || '-- encoded data --'
         dir_perms = template[:dir_perms]
@@ -19,12 +26,13 @@ module DanarchyDeploy
         puts "    Source:   #{source}"
         puts "    |> Dir  Permissions: #{dir_perms || '--undefined--'}"
         puts "    |> File Permissions: #{file_perms || '--undefined--'}"
-        puts "    |> Variables: #{@variables}" if @variables
+        if options[:vars_verbose] && @variables
+          puts '    |> Variables: '
+          var = DanarchyDeploy::Helpers.hash_except(@variables, '^pass')
+          puts var
+        end
 
-        targetdir = File.dirname(target)
         tmpdir = options[:deploy_dir] + '/' + File.basename(File.dirname(target))
-        p tmpdir
-        Dir.exist?(targetdir) || FileUtils.mkdir_p(targetdir, mode: 0755)
         Dir.exist?(tmpdir) || FileUtils.mkdir_p(tmpdir, mode: 0755)
         tmpfile = tmpdir + '/' + File.basename(target) + '.tmp'
 
@@ -35,25 +43,25 @@ module DanarchyDeploy
         end
 
         File.open(tmpfile, 'w') do |f|
-          result = ERB.new(File.read(source)).result(binding)
+          result = ERB.new(File.read(source), nil, '-').result(binding)
           f.write(result)
           f.close
         end
 
         result = { write_erb: [], verify_permissions: {} }
         if options[:pretend]
-          diff(target, tmpfile)
-          puts "\n   - Fake Run: Not changing '#{target}'."
+          diff(target, tmpfile) if options[:vars_verbose]
+          puts "\n    - Fake Run: Not changing '#{target}'."
           result[:verify_permissions][File.dirname(tmpfile)] = verify_permissions(File.dirname(tmpfile), dir_perms, options)
           result[:verify_permissions][tmpfile] = verify_permissions(tmpfile, file_perms, options)
         elsif md5sum(target,tmpfile) == true
-          puts "\n   - No change in '#{target}': Nothing to update here."
+          puts "\n    - No change in '#{target}': Nothing to update here."
           result[:verify_permissions][File.dirname(target)] = verify_permissions(File.dirname(target), dir_perms, options)
           result[:verify_permissions][target] = verify_permissions(target, file_perms, options)
         else
-          diff(target, tmpfile)
+          diff(target, tmpfile) if options[:vars_verbose]
           result[:write_erb] = enable_erb(target, tmpfile)
-          puts " => #{target} was updated!"
+          puts "       |+ #{target} was updated!"
           result[:verify_permissions][File.dirname(target)] = verify_permissions(File.dirname(target), dir_perms, options)
           result[:verify_permissions][target] = verify_permissions(target, file_perms, options)
         end
@@ -69,6 +77,7 @@ module DanarchyDeploy
       chmod = nil
       puts "\n >  Verifying ownership and permissions for '#{target}'"
       if perms
+        puts "    |+ Setting file mode to: #{perms[:mode]}"
         (owner, group, mode) = perms[:owner], perms[:group], perms[:mode]
       else
         if File.stat(target).mode & 07777 == '0777'.to_i(8)
@@ -142,11 +151,11 @@ module DanarchyDeploy
 
     def self.diff(target, tmpfile)
       if File.exist?(target) && File.exist?(tmpfile)
-        puts "\n    !! Diff between #{target} <=> #{tmpfile}"
+        puts "\n!! Diff between #{target} <=> #{tmpfile}"
         IO.popen("diff -Naur #{target} #{tmpfile}") do |o|
           puts o.read
         end
-        puts "\n    !! End Diff \n\n"
+        puts "\n!! End Diff \n\n"
       elsif File.exist?(target) && !File.exist?(tmpfile)
         return false
       end
@@ -154,11 +163,42 @@ module DanarchyDeploy
 
     def self.enable_erb(target, tmpfile)
       puts "\n    |+ Moving #{tmpfile} => #{target}"
+      targetdir = File.dirname(target)
+      Dir.exist?(targetdir) || FileUtils.mkdir_p(targetdir, mode: 0755)
       system("mv #{tmpfile} #{target}")
     end
 
     def self.write_tmpfile(source, data)
       File.write(source, data)
+    end
+
+    def self.remove_templates(templates, options)
+      templates.delete_if do |template|
+        if template.keys.include?(:remove)
+          if options[:pretend]
+            puts "    - Fake Run - Would have removed: '#{template[:target]}'."
+            false
+          elsif File.exist?(template[:target])
+            puts "    |- Removing: #{template[:target]}"
+            File.delete(template[:target])
+
+            dirname = File.dirname(template[:target])
+            if Dir.exist?(dirname) && Dir.empty?(dirname)
+              puts "    |- Removing empty directory: #{dirname}"
+              Dir.rmdir(dirname)
+              if Dir.exist?(dirname)
+                puts "      ! Failed to remove directory!"
+              else
+                puts "      - Removed directory."
+              end
+            end
+
+            true
+          end
+        end
+      end
+
+      templates
     end
   end
 end

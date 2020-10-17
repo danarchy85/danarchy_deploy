@@ -5,8 +5,9 @@ module DanarchyDeploy
       puts "\n" + self.name
       (useradd_result, userdel_result, archives_result) = nil
 
-      deployment[:users].each do |user|
-        puts " > Checking if user '#{user[:username]}' already exists."
+      deployment[:users].each do |username, user|
+        user[:username] = username.to_s
+        puts "\n > Checking if user '#{user[:username]}' already exists."
         usercheck_result = usercheck(user, options)
 
         if usercheck_result[:stdout]
@@ -24,6 +25,7 @@ module DanarchyDeploy
 
           puts "   |+ Adding user: #{user[:username]}"
           useradd_result = useradd(user, options)
+          File.chmod(0750, user[:home]) if Dir.exist?(user[:home])
         end
 
         if !options[:pretend]
@@ -46,10 +48,12 @@ module DanarchyDeploy
           end
         end
 
-        if user[:archives] && !user[:archives].empty?
-          puts " > Deploying archives for #{user[:username]}"
-          DanarchyDeploy::Archiver.new(user[:archives], options)
+        if user[:applications]
+          puts "\n > Checking #{user[:username]}'s applications."
+          user = DanarchyDeploy::Applicator.new(deployment[:os], user, options)
         end
+
+        user.delete(:username)
       end
 
       # [useradd_result, userdel_result]
@@ -58,22 +62,19 @@ module DanarchyDeploy
 
     private
     def self.useradd(user, options)
-      useradd_cmd  = "sudo useradd #{user[:username]} "
+      useradd_cmd  = "useradd #{user[:username]} "
       useradd_cmd += "--home-dir #{user[:home]} " if user[:home]
+      useradd_cmd += "--create-home " if !Dir.exist?(user[:home])
       useradd_cmd += "--uid #{user[:uid]} " if user[:uid]
       useradd_cmd += "--gid #{user[:gid]} " if user[:gid]
       useradd_cmd += "--groups #{user[:groups].join(',')} " if user[:groups]
       useradd_cmd += "--shell /sbin/nologin " if user[:nologin]
       useradd_cmd += "--system " if user[:system]
-      if options[:pretend]
-        puts "\tFake run: #{useradd_cmd}"
-      else
-        DanarchyDeploy::Helpers.run_command(useradd_cmd, options)
-      end
+      DanarchyDeploy::Helpers.run_command(useradd_cmd, options)
     end
 
     def self.userdel(user, options)
-      userdel_cmd  = "sudo userdel --remove #{user[:username]}"
+      userdel_cmd  = "userdel --remove #{user[:username]}"
       if options[:pretend]
         puts "\tFake run: #{userdel_cmd}"
       else
@@ -94,12 +95,20 @@ module DanarchyDeploy
 
     def self.updategroups(user, options)
       groups = user[:groups].join(',')
-      groupupdate_cmd = "sudo usermod #{user[:username]} --groups #{groups}"
-      if options[:pretend]
-        puts "\tFake run: #{groupupdate_cmd}"
-      else
-        DanarchyDeploy::Helpers.run_command(groupupdate_cmd, options)
-      end
+      groupupdate_cmd = "usermod #{user[:username]} --groups #{groups}"
+      DanarchyDeploy::Helpers.run_command(groupupdate_cmd, options)
+    end
+
+    def self.add_to_group(user, options)
+      groups = user[:groups].join(',')
+      groupadd_cmd = "usermod #{user[:username]} --groups #{groups} --append"
+      DanarchyDeploy::Helpers.run_command(groupadd_cmd, options)
+    end
+
+    def self.remove_from_group(user, group, options)
+      groups = user[:groups].join(',')
+      removegroup_cmd = "gpasswd --remove #{user[:username]} #{group}"
+      DanarchyDeploy::Helpers.run_command(removegroup_cmd, options)
     end
 
     def self.authorized_keys(user)
@@ -109,12 +118,13 @@ module DanarchyDeploy
       Dir.exist?(ssh_path) || Dir.mkdir(ssh_path, 0700)
       File.chown(user[:uid], user[:gid], ssh_path)
       File.open(authkeys, 'a+') do |f|
+        contents = f.read
         user[:authorized_keys].each do |authkey|
-          if !f.read.include?(authkey)
+          if contents.include?(authkey)
+            puts "   - Key already in place: #{authkey}"
+          else
             puts "   + Adding authorized_key: #{authkey}"
             f.puts authkey
-          else
-            puts '   - No change needed'
           end
         end
 
