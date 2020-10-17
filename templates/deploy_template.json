@@ -37,8 +37,8 @@
   ],
   "groups": [
     {
-    "groupname": "groupname",
-    "gid": int,
+      "groupname": "groupname",
+      "gid": int
     }
   ],
   "services": {
@@ -48,7 +48,7 @@
           "enable",
           "restart"
         ]
-      }
+      },
       "archives": [
 	{
 	  "target": "/path/to/extract/to/",
