@@ -5,12 +5,13 @@ require 'date'
 require 'optparse'
 
 deployment = nil
-options = { couchdb: "/home/#{ENV['SUDO_USER']}/.danarchy/danarchy_deploy/danarchy_deploy.json",
+options = { couchdb: "#{ENV['HOME']}/.danarchy/danarchy_deploy/danarchy_deploy.json",
             deploy_dir: '/danarchy/deploy',
             deploy_file: nil,
+            first_run: false,
             pretend: false,
             ssh_verbose: false,
-            first_run: false }
+            vars_verbose: false }
 
 ARGV.push('--help') if ARGV.empty?
 optparse = OptionParser.new do |opts|
@@ -32,33 +33,43 @@ optparse = OptionParser.new do |opts|
     options[:pretend] = true
   end
 
-  opts.on('-f', '--first-run', 'First Run: Run as a first run causing services to run all init actions.') do |val|
-    options[:first_run] = true
-  end
-
   opts.on('-d', '--deploy-dir', "Deployment directory. Defaults to '/danarchy/deploy'.") do |val|
     options[:deploy_dir] = val.gsub(/\/$/, '')
+  end
+
+  opts.on('--dev-gem', 'Build dAnarchy_deploy gem locally and push to target host in RemoteDeploy.') do |val|
+    options[:dev_gem] = true
+  end
+
+  opts.on('-f', '--first-run', 'First Run: Run as a first run causing services to run all init actions.') do |val|
+    options[:first_run] = true
   end
 
   opts.on('--ssh-verbose', "Verbose SSH stdout/stderr output.") do |val|
     options[:ssh_verbose] = true
   end
 
+  opts.on('--vars-verbose', "Verbose template variables and diff output.") do |val|
+    options[:vars_verbose] = true
+  end
+
   opts.on('--version', "Print #{$PROGRAM_NAME} version.") do |val|
     puts "DanarchyDeploy: #{DanarchyDeploy::VERSION}"
+    exit 1
   end
 
   opts.on('-h', '--help', 'Print this help info.') do |val|
-    puts opts, ''
+    puts opts
+    exit 1
   end
 end.parse!
 
 puts "DanarchyDeploy: #{DanarchyDeploy::VERSION}"
-abort('Exiting! Must be run with sudo!') if Process.uid != 0
-
 location = ARGV.delete('remote') || ARGV.delete('local') || abort("ERROR: Need an option 'local' or 'remote' to know what to do!")
 cdb_config = File.exist?(options[:couchdb]) ? JSON.parse(File.read(options[:couchdb]), symbolize_names: true)[:couchdb] : nil
 cdb = DanarchyCouchDB::Connection.new(cdb_config) if cdb_config
+
+# Error handling for !cdb_config && !input_file
 
 if !deployment && !options[:deploy_file] && cdb
   deployment_name = ARGV.shift
@@ -71,6 +82,8 @@ if !deployment && !options[:deploy_file] && cdb
   options[:deploy_file] = "#{options[:deploy_dir]}/#{deployment_name}/#{deployment_name}.json"
   puts "Temp JSON path: #{options[:deploy_file]}"
   File.write(options[:deploy_file], deployment.to_json)
+elsif !deployment && !cdb
+  abort('ERROR: No --json or --yaml file was provided, nor was a CouchDB connection found.')
 end  
 
 if !deployment[:last_deploy] || deployment[:last_deploy].empty?
@@ -81,6 +94,7 @@ end
 if location == 'remote'
   deployment = DanarchyDeploy::RemoteDeploy.new(deployment, options)
 elsif location == 'local'
+  abort('Exiting! Must be run with sudo!') if Process.uid != 0
   puts "Deploying #{deployment[:hostname]} locally to #{`hostname`.chomp}."
 
   if !options[:pretend]
