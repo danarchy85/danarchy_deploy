@@ -60,8 +60,8 @@ module DanarchyDeploy
 
       def self.generate_mongodb_conf
         if File.readlines('/etc/security/limits.conf').grep(/mongodb/).empty?
-          entry =  'mongodb         soft     nofile          32000'
-          entry += 'mongodb         hard     nofile          64000'
+          entry =  "mongodb         soft     nofile          32000\n"
+          entry += "mongodb         hard     nofile          64000\n"
           File.open('/etc/security/limits.conf', 'a+') do |f|
             f.write entry
           end
