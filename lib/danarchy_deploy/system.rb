@@ -22,8 +22,7 @@ module DanarchyDeploy
         puts "\nNo packages to install."
       end
 
-      if !options[:pretend] && # Run updates/clean if last_deploy > 1hr ago
-         (deployment[:last_deploy] && Time.now - Time.parse(deployment[:last_deploy]) > 3600)
+      if !options[:pretend]
         puts "\nRunning system updates..."
         updater_result = DanarchyDeploy::Helpers.run_command(updater, options)
         puts updater_result[:stdout] if updater_result[:stdout]
