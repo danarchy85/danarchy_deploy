@@ -3,6 +3,8 @@ require_relative 'system/debian'
 require_relative 'system/gentoo'
 require_relative 'system/opensuse'
 
+require_relative 'system/cryptsetup'
+
 module DanarchyDeploy
   module System
     def self.new(deployment, options)
@@ -20,7 +22,8 @@ module DanarchyDeploy
         puts "\nNo packages to install."
       end
 
-      if !options[:pretend]
+      if !options[:pretend] && # Run updates/clean if last_deploy > 1hr ago
+         (deployment[:last_deploy] && Time.now - Time.parse(deployment[:last_deploy]) > 3600)
         puts "\nRunning system updates..."
         updater_result = DanarchyDeploy::Helpers.run_command(updater, options)
         puts updater_result[:stdout] if updater_result[:stdout]
@@ -29,6 +32,8 @@ module DanarchyDeploy
         puts cleanup_result[:stdout] if cleanup_result[:stdout]
       end
 
+      DanarchyDeploy::System::Cryptsetup.new(deployment[:os], deployment[:system][:cryptsetup], options)
+      # fstab_mount(deployment, options)
       deployment
     end
 
@@ -46,26 +51,7 @@ module DanarchyDeploy
         if deployment[:system][:templates]
           puts "\n > Configuring system templates for #{deployment[:os]}"
           DanarchyDeploy::Templater.new(deployment[:system][:templates], options)
-
-          # Add deployment[:system][:dmcrypt], deployment[:system][:lvm], and deployment[:system][:fstab] here
-          deployment[:system][:templates].each do |t|
-            if t[:target] == '/etc/fstab'
-              t[:variables].each do |v|
-                if !Dir.exist?(v[:mountpoint])
-                  puts "Creating mountpoint: #{v[:mountpoint]}"
-                  FileUtils.mkdir_p(v[:mountpoint]) if !options[:pretend]
-                end
-              end
-            end
-          end
-
         end
-      end
-
-      puts "\n > Mounting Filesystems"
-      if !options[:pretend]
-        mount_result = DanarchyDeploy::Helpers.run_command('mount -a', options)
-        abort('   |! Failed to mount filesystems!') if mount_result[:stderr]
       end
 
       if os.downcase == 'gentoo'
@@ -81,6 +67,24 @@ module DanarchyDeploy
       end
 
       [installer, updater, cleaner]
+    end
+
+    def self.fstab_mount(deployment, options)
+      fstab = deployment[:system][:templates].collect { |t| t if t[:target] == '/etc/fstab' }.compact
+      fstab.each do |t|
+        t[:variables].each do |v|
+          if !Dir.exist?(v[:mountpoint])
+            puts "Creating mountpoint: #{v[:mountpoint]}"
+            FileUtils.mkdir_p(v[:mountpoint]) if !options[:pretend]
+          end
+        end
+      end
+
+      puts "\n > Mounting Filesystems"
+      if !options[:pretend]
+        mount_result = DanarchyDeploy::Helpers.run_command('mount -a', options)
+        abort('   |! Failed to mount filesystems!') if mount_result[:stderr]
+      end
     end
   end
 end
