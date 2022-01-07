@@ -4,7 +4,8 @@ module DanarchyDeploy
     class Cryptsetup
       def self.new(os, cryptsetup, options)
         return false if cryptsetup.nil?
-        
+        puts "\n" + self.name
+
         # expects object: { "cryptsetup": { "source": "/danarchy/deploy/templates/system/cryptsetup.erb", (optional)
         #                                "volumes": { "vg_name:vg0:/dev/vdb": { "target": "dm-vg0-mongodb",
         #                                                               "source": "/dev/mapper/vg0-mongodb",
@@ -49,6 +50,7 @@ module DanarchyDeploy
       end
 
       def self.lvm_setup(device, volume, options)
+        puts "\n > Configuring LVM"
         name, vg, pv = device.to_s.split(/:/)
 
         # Create physical volume
@@ -56,7 +58,7 @@ module DanarchyDeploy
         if pvdisplay[:stderr]
           puts "Creating physical volume: #{pv}"
           pvcreate = DanarchyDeploy::Helpers.run_command("pvcreate -f #{pv}", options)
-          abort("  ! Failed to run pvcreate: #{pvcreate[:stderr]}") if pvcreate[:stderr]
+          abort("   ! Failed to run pvcreate: #{pvcreate[:stderr]}") if pvcreate[:stderr]
           puts pvcreate[:stdout]
           pvdisplay = DanarchyDeploy::Helpers.run_command("pvdisplay #{pv}", options)
         end
@@ -67,7 +69,7 @@ module DanarchyDeploy
         if vgdisplay[:stderr]
           puts "Creating volume group: #{vg} with #{pv}"
           vgcreate = DanarchyDeploy::Helpers.run_command("vgcreate #{vg} #{pv}", options)
-          abort("  ! Failed to run vgcreate: #{vgcreate[:stderr]}") if vgcreate[:stderr]
+          abort("   ! Failed to run vgcreate: #{vgcreate[:stderr]}") if vgcreate[:stderr]
           puts vgcreate[:stdout]
           vgdisplay = DanarchyDeploy::Helpers.run_command("vgdisplay #{vg}", options)
         end
@@ -78,7 +80,7 @@ module DanarchyDeploy
         if lvdisplay[:stderr]
           puts "Creating volume group: #{vg}/#{name} with #{pv}"
           lvcreate = DanarchyDeploy::Helpers.run_command("lvcreate -y -l 100%FREE -n #{name} #{vg}", options)
-          abort("  ! Failed to run lvcreate: #{lvcreate[:stderr]}") if lvcreate[:stderr]
+          abort("   ! Failed to run lvcreate: #{lvcreate[:stderr]}") if lvcreate[:stderr]
           puts lvcreate[:stdout]
           lvdisplay = DanarchyDeploy::Helpers.run_command("lvdisplay #{vg}/#{name}", options)
         end
@@ -88,18 +90,19 @@ module DanarchyDeploy
       end
 
       def self.encrypt_volume(volume, options)
+        puts "\n > Configuring Cryptsetup"
         deploy_key(volume, options)
         target = volume[:variables][:target]
         source = volume[:variables][:source]
         key    = volume[:variables][:key]
-        abort(" Failed to find key: #{key}") if !File.exist?(key) && !options[:pretend]
+        abort("  ! Failed to find key: #{key}") if !File.exist?(key) && !options[:pretend]
         
         # Encrypt logical volume with key
         luksdump = DanarchyDeploy::Helpers.run_command("cryptsetup luksDump #{source}", options)
         if luksdump[:stderr]
-          puts "Encrypting volume: #{source}"
+          puts "\n   > Encrypting volume: #{source}"
           luksformat = DanarchyDeploy::Helpers.run_command("cryptsetup luksFormat #{source} #{key}", options)
-          abort("  ! Failed to run luksFormat: #{luksformat[:stderr]}") if luksformat[:stderr]
+          abort("     ! Failed to run luksFormat: #{luksformat[:stderr]}") if luksformat[:stderr]
           puts luksformat[:stdout]
           luksdump = DanarchyDeploy::Helpers.run_command("cryptsetup luksDump #{source}", options)
         end
@@ -108,9 +111,9 @@ module DanarchyDeploy
         # Open luks target
         luksopen = { stderr: nil }
         if !File.exist?("/dev/mapper/#{target}")
-          puts "Opening volume: #{source}"
+          puts "\n   > Opening volume: #{source}"
           luksopen = DanarchyDeploy::Helpers.run_command("cryptsetup luksOpen -d #{key} #{source} #{target}", options)
-          abort("  ! Failed to run luksOpen: #{luksopen[:stderr]}") if luksopen[:stderr]
+          abort("     ! Failed to run luksOpen: #{luksopen[:stderr]}") if luksopen[:stderr]
           puts luksopen[:stdout]
         end
 

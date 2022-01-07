@@ -4,6 +4,7 @@ require_relative 'system/gentoo'
 require_relative 'system/opensuse'
 
 require_relative 'system/cryptsetup'
+require_relative 'system/fstab'
 
 module DanarchyDeploy
   module System
@@ -32,7 +33,7 @@ module DanarchyDeploy
       end
 
       DanarchyDeploy::System::Cryptsetup.new(deployment[:os], deployment[:system][:cryptsetup], options)
-      # fstab_mount(deployment, options)
+      DanarchyDeploy::System::Fstab.new(deployment[:os], deployment[:system][:fstab], options)
       deployment
     end
 
