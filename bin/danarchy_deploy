@@ -15,7 +15,8 @@ options = { couchdb: "#{ENV['HOME']}/.danarchy/danarchy_deploy/danarchy_deploy.j
 
 ARGV.push('--help') if ARGV.empty?
 optparse = OptionParser.new do |opts|
-  opts.banner = "Usage: sudo #{$PROGRAM_NAME} (local|remote) --json /path/to/deployment.json [options]"
+  opts.banner  = "Usage: danarchy_deploy (local|remote) --json #{options[:deploy_dir]}/<HOSTNAME>/<HOSTNAME>.json [options]"
+  opts.banner += "\n  Local deployments require danarchy_deploy to be run as sudo/root.\n\n"
 
   opts.on('-j=file', '--json=file', 'Read configuration from JSON file.') do |file|
     require 'json'
@@ -94,7 +95,7 @@ end
 if location == 'remote'
   deployment = DanarchyDeploy::RemoteDeploy.new(deployment, options)
 elsif location == 'local'
-  abort('Exiting! Must be run with sudo!') if Process.uid != 0
+  abort('Exiting! Local deployment be run with sudo!') if Process.uid != 0
   puts "Deploying #{deployment[:hostname]} locally to #{`hostname`.chomp}."
 
   if !options[:pretend]
