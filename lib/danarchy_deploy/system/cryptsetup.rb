@@ -26,7 +26,7 @@ module DanarchyDeploy
         deploy_template(target, source, cryptsetup[:volumes], options)
         if os == 'gentoo'
           DanarchyDeploy::Services::Init.init_manager(os, service, 'enable', options)
-          DanarchyDeploy::Services::Init.init_manager(os, service, 'restart', options)
+          DanarchyDeploy::Services::Init.init_manager(os, service, 'start', options)
         end
       end
 
