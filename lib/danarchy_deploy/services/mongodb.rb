@@ -48,9 +48,7 @@ module DanarchyDeploy
       private
       def self.load_mongodb_conf
         updated_conf = false
-        @mongodb[:mongodb_conf] = @mongodb[:mongodb_conf] ?
-                                    @mongodb[:mongodb_conf] :
-                                    '/etc/mongodb.conf'
+        @mongodb[:mongodb_conf] ||= '/etc/mongodb.conf'
         mongodb_conf = File.exist?(@mongodb[:mongodb_conf]) ? YAML.load_file(@mongodb[:mongodb_conf]) : Hash.new
 
         generated_mongodb_conf = self.generate_mongodb_conf
@@ -59,13 +57,15 @@ module DanarchyDeploy
       end
 
       def self.generate_mongodb_conf
-        if File.readlines('/etc/security/limits.conf').grep(/mongodb/).empty?
-          entry =  "mongodb         soft     nofile          32000\n"
-          entry += "mongodb         hard     nofile          64000\n"
-          File.open('/etc/security/limits.conf', 'a+') do |f|
-            f.write entry
-          end
-        end
+        security_limits = '/etc/security/limits.d/mongodb.conf'
+        limits = <<~EOF
+        mongodb         soft     nofile          64000
+        mongodb         hard     nofile          64000
+        mongodb         soft     nproc           64000
+        mongodb         hard     nproc           64000
+        EOF
+
+        File.write(security_limits, limits) if !File.exist?(security_limits)
 
         mongodb_conf = {
           'net'       => { 'port'    => 27017, 'bindIp' => '127.0.0.1' },
