@@ -82,7 +82,7 @@ module DanarchyDeploy
       mkdir_cmd = _ssh_command(connector, "test -d #{options[:working_dir]} || sudo mkdir -vp #{options[:working_dir]}")
       mkdir_result = DanarchyDeploy::Helpers.run_command(mkdir_cmd, options)
 
-      if mkdir_result[:stderr]
+      if mkdir_result[:stderr] && ! mkdir_result[:stdout]
         abort('   ! Directory creation failed!')
       else
         puts "   |+ Created directory: '#{options[:deploy_dir]}'"
