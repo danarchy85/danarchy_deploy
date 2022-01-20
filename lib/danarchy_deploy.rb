@@ -79,7 +79,7 @@ module DanarchyDeploy
     private
     def self.remote_mkdir(connector, options)
       puts "\n > Creating directory: #{options[:working_dir]}"
-      mkdir_cmd = _ssh_command(connector, "test -d #{options[:working_dir]} || sudo mkdir -vp #{options[:working_dir]}")
+      mkdir_cmd = _ssh_command(connector, "test -d #{options[:working_dir]} && echo 'Directory exists!' || sudo mkdir -vp #{options[:working_dir]}")
       mkdir_result = DanarchyDeploy::Helpers.run_command(mkdir_cmd, options)
 
       if mkdir_result[:stderr] && ! mkdir_result[:stdout]
