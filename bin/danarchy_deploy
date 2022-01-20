@@ -5,7 +5,7 @@ require 'date'
 require 'optparse'
 
 deployment = nil
-options = { couchdb: "#{ENV['HOME']}/.danarchy/danarchy_deploy/danarchy_deploy.json",
+options = { couchdb: "#{ENV['HOME']}/.danarchy/danarchy_deploy/danarchy_couchdb.json",
             deploy_dir: '/danarchy/deploy',
             deploy_file: nil,
             first_run: false,
@@ -15,7 +15,8 @@ options = { couchdb: "#{ENV['HOME']}/.danarchy/danarchy_deploy/danarchy_deploy.j
 
 ARGV.push('--help') if ARGV.empty?
 optparse = OptionParser.new do |opts|
-  opts.banner = "Usage: sudo #{$PROGRAM_NAME} (local|remote) --json /path/to/deployment.json [options]"
+  opts.banner  = "Usage: danarchy_deploy (local|remote) --json #{options[:deploy_dir]}/<HOSTNAME>/<HOSTNAME>.json [options]"
+  opts.banner += "\n  Local deployments require danarchy_deploy to be run as sudo/root.\n\n"
 
   opts.on('-j=file', '--json=file', 'Read configuration from JSON file.') do |file|
     require 'json'
@@ -65,7 +66,7 @@ optparse = OptionParser.new do |opts|
 end.parse!
 
 puts "DanarchyDeploy: #{DanarchyDeploy::VERSION}"
-location = ARGV.delete('remote') || ARGV.delete('local') || abort("ERROR: Need an option 'local' or 'remote' to know what to do!")
+location = ARGV.delete('remote') || ARGV.delete('local') || abort("ERROR: Need a deployment type: 'local' or 'remote'!")
 cdb_config = File.exist?(options[:couchdb]) ? JSON.parse(File.read(options[:couchdb]), symbolize_names: true)[:couchdb] : nil
 cdb = DanarchyCouchDB::Connection.new(cdb_config) if cdb_config
 
@@ -94,7 +95,7 @@ end
 if location == 'remote'
   deployment = DanarchyDeploy::RemoteDeploy.new(deployment, options)
 elsif location == 'local'
-  abort('Exiting! Must be run with sudo!') if Process.uid != 0
+  abort('Exiting! Local deployment be run with sudo!') if Process.uid != 0
   puts "Deploying #{deployment[:hostname]} locally to #{`hostname`.chomp}."
 
   if !options[:pretend]
@@ -113,6 +114,7 @@ end
 
 if deployment && cdb && !options[:pretend] && options[:deploy_file] !~ /.*(json|yaml)$/
   puts "Saving deployment to CouchDB."
+  deployment[:_attachments].values.map { |v| v.delete(:data) } if deployment[:_attachments]
   old_rev = cdb.get(cdb_config[:database], deployment_name)[:_rev]
   save = cdb.put(cdb_config[:database], deployment[:_id], deployment)
 
