@@ -2,6 +2,7 @@
 module DanarchyDeploy
   class Users
     def self.new(deployment, options)
+      return deployment if ! deployment[:users]
       puts "\n" + self.name
       (useradd_result, userdel_result, archives_result) = nil
 
@@ -56,7 +57,6 @@ module DanarchyDeploy
         user.delete(:username)
       end
 
-      # [useradd_result, userdel_result]
       deployment
     end
 

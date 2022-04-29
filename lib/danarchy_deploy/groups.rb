@@ -2,6 +2,7 @@
 module DanarchyDeploy
   class Groups
     def self.new(deployment, options)
+      return deployment if ! deployment[:groups]
       puts "\n" + self.name
       (groupadd_result, groupdel_result) = nil
 

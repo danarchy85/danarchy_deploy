@@ -5,6 +5,7 @@ module DanarchyDeploy
   module Services
     class Init
       def self.new(deployment, options)
+        return deployment if ! deployment[:services]
         puts "\n" + self.name
 
         deployment[:services].each do |service, params|
@@ -35,16 +36,16 @@ module DanarchyDeploy
 
         init_result = init.send(action)
 
-        if init_result[:stderr]
-          if init_result[:stderr].include?('unknown function')
+        if stderr = init_result[:stderr]
+          if stderr.include?('unknown function')
             puts "       ! Action: #{action} not available for service: #{service}.\n" +
                  "          ! A restart may be needed! Otherwise, remove this action from the deployment.\n" +
                  "          ! Not taking any action here.\n"
           else
-            abort("       ! Action: #{service} #{action} failed!")
+            abort("       ! Action: #{action} #{service} failed!")
           end
         else
-          puts "       |+ Action: #{service} #{action} succeeded."
+          puts "       |+ Action: #{action} #{service} succeeded."
         end
       end
     end
