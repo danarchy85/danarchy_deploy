@@ -4,6 +4,7 @@ patch_0.2.6
 - Services::Init: clean up output and if statement
 - Add RVM .ruby-version .ruby-gemset
 - Rename danarchy_deploy-console to console-dd
+- Add CHANGELOG.md
 
 patch_0.2.5
 - Adds Fstab system service
