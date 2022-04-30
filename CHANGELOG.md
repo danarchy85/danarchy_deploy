@@ -1,5 +1,6 @@
 patch_0.2.6
-- return from each class if not defined in a deployment
+- DanarchyDeploy: gem install --bindir
+- DanarchyDeploy: return from each class if not defined in a deployment
 - Services::MySQL: Check for defaults_file instead of /etc/my.cnf, SecureRandom.hex for passwords
 - Services::Init: clean up output and if statement
 - Add RVM .ruby-version .ruby-gemset

@@ -21,10 +21,10 @@ module DanarchyDeploy
       printf("%12s %0s\n", 'Packages:', deployment[:packages].join(', '))  if deployment[:packages]
 
       deployment = DanarchyDeploy::System.new(deployment, options)
-      deployment = DanarchyDeploy::Services.new(deployment, options)       if deployment[:services]
-      deployment = DanarchyDeploy::Groups.new(deployment, options)         if deployment[:groups]
-      deployment = DanarchyDeploy::Users.new(deployment, options)          if deployment[:users]
-      deployment = DanarchyDeploy::Services::Init.new(deployment, options) if deployment[:services]
+      deployment = DanarchyDeploy::Services.new(deployment, options)
+      deployment = DanarchyDeploy::Groups.new(deployment, options)
+      deployment = DanarchyDeploy::Users.new(deployment, options)
+      deployment = DanarchyDeploy::Services::Init.new(deployment, options)
 
       deployment[:last_deploy] = DateTime.now.strftime("%Y/%m/%d %H:%M:%S")
       puts "\nFinished Local Deployment at #{deployment[:last_deploy]}!"
@@ -61,7 +61,7 @@ module DanarchyDeploy
 
       gem_clean(connector, options)
       gem_binary = _locate_gem_binary(connector, options) # this should run before any install; check version too
-      push_temmplates(connector, options)
+      push_templates(connector, options)
       push_deployment(connector, options)
       deploy_result = remote_LocalDeploy(connector, gem_binary, options)
 
@@ -144,7 +144,7 @@ module DanarchyDeploy
       end
       
       puts "\n > Installing gem: #{gem} on #{connector[:hostname]}"
-      install_cmd = _ssh_command(connector, "sudo gem install -f #{options[:deploy_dir]}/#{File.basename(gem)}")
+      install_cmd = _ssh_command(connector, "sudo gem install --bindir /usr/local/bin -f #{options[:deploy_dir]}/#{File.basename(gem)}")
       install_result = DanarchyDeploy::Helpers.run_command(install_cmd, options)
 
       if install_result[:stderr]
@@ -159,7 +159,7 @@ module DanarchyDeploy
       system(clean_cmd)
     end
 
-    def self.push_temmplates(connector, options)
+    def self.push_templates(connector, options)
       template_dir = options[:deploy_dir] + '/templates'
       puts "\n > Pushing templates: #{template_dir}"
       push_cmd = _rsync_push(connector, template_dir, template_dir)
