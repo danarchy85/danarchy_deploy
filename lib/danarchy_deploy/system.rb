@@ -10,6 +10,7 @@ module DanarchyDeploy
   module System
     def self.new(deployment, options)
       abort('Operating System not defined! Exiting!') if !deployment[:os]
+      return deployment if ! deployment[:system]
       puts "\n" + self.name
 
       installer, updater, cleaner = prep_operating_system(deployment, options)
@@ -32,8 +33,6 @@ module DanarchyDeploy
         puts cleanup_result[:stdout] if cleanup_result[:stdout]
       end
 
-      DanarchyDeploy::System::Cryptsetup.new(deployment[:os], deployment[:system][:cryptsetup], options)
-      DanarchyDeploy::System::Fstab.new(deployment[:os], deployment[:system][:fstab], options)
       deployment
     end
 
@@ -52,6 +51,14 @@ module DanarchyDeploy
           puts "\n > Configuring system templates for #{deployment[:os]}"
           DanarchyDeploy::Templater.new(deployment[:system][:templates], options)
         end
+
+        DanarchyDeploy::System::Cryptsetup.new(deployment[:os], deployment[:system][:cryptsetup], options)
+
+        if deployment[:system][:fstab]
+          DanarchyDeploy::System::Fstab.new(deployment[:os], deployment[:system][:fstab], options)
+        else
+          DanarchyDeploy::System::Fstab.mount_all(options)
+        end
       end
 
       if os.downcase == 'gentoo'
@@ -61,8 +68,8 @@ module DanarchyDeploy
       elsif os.downcase == 'opensuse'
         puts 'OpenSUSE is not fully supported yet!'
         (installer, updater, cleaner) = DanarchyDeploy::System::OpenSUSE.new(deployment, options)
-      elsif %w[centos redhat].include?(os.downcase)
-        puts 'CentOS/RedHat is not fully supported yet!'
+      elsif %w[fedora centos redhat].include?(os.downcase)
+        puts 'Fedora/CentOS/RedHat is not fully supported yet!'
         (installer, updater, cleaner) = DanarchyDeploy::System::CentOS.new(deployment, options)
       end
 

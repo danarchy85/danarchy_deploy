@@ -13,7 +13,7 @@ module DanarchyDeploy
         Mongo::Logger.logger.level = Logger::FATAL
         mongodb_conf, updated_conf = self.load_mongodb_conf
         host_port = mongodb_conf['net']['bindIp'].split(',').first + ':' + mongodb_conf['net']['port'].to_s
-        admin_user, new_admin   = self.load_admin_user
+        admin_user, new_admin = self.load_admin_user
 
         if new_admin == true
           client = Mongo::Client.new(['127.0.0.1'], database: 'admin')

@@ -6,6 +6,7 @@ require_relative 'services/mysql'
 module DanarchyDeploy
   module Services
     def self.new(deployment, options)
+      return deployment if ! deployment[:services]
       puts "\n" + self.name
 
       deployment[:services].each do |service, params|

@@ -6,10 +6,14 @@ module DanarchyDeploy
         return false if cryptsetup.nil?
         puts "\n" + self.name
 
-        # expects object: { "cryptsetup": { "source": "/danarchy/deploy/templates/system/cryptsetup.erb", (optional)
-        #                                "volumes": { "vg_name:vg0:/dev/vdb": { "target": "dm-vg0-mongodb",
-        #                                                               "source": "/dev/mapper/vg0-mongodb",
-        #                                                               "key": "/root/vdb_mongodb.key" } } } }
+        # expects object: {
+        # "cryptsetup": {
+        #       "source": "/danarchy/deploy/templates/system/cryptsetup.erb", (optional)
+        #       "volumes": {
+        #               "vg_name:vg0:/dev/vdb": {
+        #                       "target": "dm-vg0-mongodb",
+        #                       "source": "/dev/mapper/vg0-mongodb",
+        #                       "key": "/root/vdb_mongodb.key" } } } }
 
         if os == 'gentoo'
           DanarchyDeploy::Services::Init.init_manager(os, 'lvmetad', 'enable', options)

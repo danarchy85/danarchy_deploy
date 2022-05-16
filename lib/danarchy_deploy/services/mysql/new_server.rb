@@ -49,13 +49,13 @@ module DanarchyDeploy
         end
 
         def self.generate_root_mycnf(mysql, options)
-          return if File.exist?(mysql[:default_file])
-          puts "   |+ Generating #{mysql[:default_file]} file."
-          password = SecureRandom.base64(14)
+          return if File.exist?(mysql[:defaults_file])
+          puts "   |+ Generating #{mysql[:defaults_file]} file."
+          password = SecureRandom.hex(24)
           source = options[:deploy_dir] +
                    '/templates/services/mysql/root_my.cnf.erb'
 
-          templates = [{ target: mysql[:default_file],
+          templates = [{ target: mysql[:defaults_file],
                          source: source,
                          variables: {
                            host: 'localhost',

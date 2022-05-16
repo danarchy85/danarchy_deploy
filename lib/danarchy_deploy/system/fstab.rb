@@ -10,6 +10,12 @@ module DanarchyDeploy
         mount_all(options)
       end
 
+      def self.mount_all(options)
+        puts "\n > Mounting Filesystems"
+        mount_result = DanarchyDeploy::Helpers.run_command('mount -a', options)
+        abort('    ! Failed to mount filesystems!') if mount_result[:stderr]
+      end
+
       private
       def self.set_config(fstab, options)
         target = '/etc/fstab'
@@ -48,12 +54,6 @@ module DanarchyDeploy
           FileUtils.mkdir_p(mount[:mountpoint]) if !options[:pretend] &&
                                                    !Dir.exist?(mount[:mountpoint])
         end
-      end
-
-      def self.mount_all(options)
-        puts "\n > Mounting Filesystems"
-        mount_result = DanarchyDeploy::Helpers.run_command('mount -a', options)
-        abort('    ! Failed to mount filesystems!') if mount_result[:stderr]
       end
     end
   end

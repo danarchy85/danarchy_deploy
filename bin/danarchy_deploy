@@ -95,7 +95,7 @@ end
 if location == 'remote'
   deployment = DanarchyDeploy::RemoteDeploy.new(deployment, options)
 elsif location == 'local'
-  abort('Exiting! Local deployment be run with sudo!') if Process.uid != 0
+  abort('Exiting! Local deployment must be run with sudo!') if Process.uid != 0
   puts "Deploying #{deployment[:hostname]} locally to #{`hostname`.chomp}."
 
   if !options[:pretend]

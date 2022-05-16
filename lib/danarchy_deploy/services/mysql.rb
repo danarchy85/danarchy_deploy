@@ -11,7 +11,7 @@ module DanarchyDeploy
         mysql = self.set_parameters(mysql)
         self.generate_my_cnf(mysql, options)
 
-        if File.exist?(mysql[:my_cnf]) && Dir.exist?(mysql[:datadir] + '/mysql')
+        if File.exist?(mysql[:defaults_file]) && Dir.exist?(mysql[:datadir])
           puts "   |+ Using existing MySQL service."
         else
           MySQL::NewServer.new(os, mysql, options)
@@ -24,8 +24,8 @@ module DanarchyDeploy
       end
 
       def self.set_parameters(mysql)
-        mysql[:default_file] = mysql[:default_file] ?
-                                 mysql[:default_file] :
+        mysql[:defaults_file] = mysql[:defaults_file] ?
+                                 mysql[:defaults_file] :
                                  '/root/.my.cnf'
         mysql[:my_cnf] = mysql[:my_cnf] ?
                            mysql[:my_cnf] :
