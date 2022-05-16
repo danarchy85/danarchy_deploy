@@ -5,7 +5,7 @@ module DanarchyDeploy
       def self.new(os, fstab, options)
         puts "\n" + self.name
         target, source = set_config(fstab, options)
-        deploy_template(target, source, fstab[:variables], options)
+        deploy_template(target, source, fstab[:mounts], options)
         format_mountpoints(fstab, options)
         mount_all(options)
       end
