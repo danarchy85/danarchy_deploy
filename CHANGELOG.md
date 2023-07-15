@@ -1,3 +1,9 @@
+patch_0.2.7
+- Patch Templater ERB.new for Ruby versions higher than 2.6
+- Allow builtin:: templates in Templater
+- System: allow :system:updates in template to control what to install/update
+- System: do not return if :system is not defined in template
+
 patch_0.2.6
 - DanarchyDeploy: gem install --bindir
 - DanarchyDeploy: return from each class if not defined in a deployment

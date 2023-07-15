@@ -10,27 +10,34 @@ module DanarchyDeploy
   module System
     def self.new(deployment, options)
       abort('Operating System not defined! Exiting!') if !deployment[:os]
-      return deployment if ! deployment[:system]
       puts "\n" + self.name
 
       installer, updater, cleaner = prep_operating_system(deployment, options)
       install_result = nil
-      if deployment[:packages] && !deployment[:packages].empty?
+
+      puts "\n > Package Installation"
+      if deployment[:packages].any? && ['all', 'packages', nil].include?(deployment[:system][:update])
         packages = deployment[:packages].join(' ')
-        puts "\nInstalling packages..."
+        puts "\n   - Installing packages..."
         install_result = DanarchyDeploy::Helpers.run_command("#{installer} #{packages}", options)
         puts install_result[:stdout] if install_result[:stdout]
       else
-        puts "\nNo packages to install."
+        puts "\n   - Not installing packages."
+        puts "       |_ Packages selected: #{deployment[:packages].count}"
+        puts "       |_ Updates  selected: #{deployment[:system][:update]}"
       end
 
-      if !options[:pretend]
-        puts "\nRunning system updates..."
+      puts "\n > #{deployment[:os].capitalize} System Updates"
+      if ['all', 'system', nil].include?(deployment[:system][:update])
+        puts "\n   - Running system updates..."
         updater_result = DanarchyDeploy::Helpers.run_command(updater, options)
         puts updater_result[:stdout] if updater_result[:stdout]
-        puts "\nCleaning up unused packages..."
+        puts "\n   - Cleaning up unused packages..."
         cleanup_result = DanarchyDeploy::Helpers.run_command(cleaner, options)
         puts cleanup_result[:stdout] if cleanup_result[:stdout]
+      else
+        puts "\n   - Not running #{deployment[:os].capitalize} system updates."
+        puts "       |_ Updates selected: #{deployment[:system][:update]}"
       end
 
       deployment
