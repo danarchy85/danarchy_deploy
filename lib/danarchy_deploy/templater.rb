@@ -3,6 +3,15 @@ require 'fileutils'
 
 module DanarchyDeploy
   class Templater
+    def self.load_source(source)
+      if source =~ /^builtin::/
+        source = File.expand_path('../../',  __dir__) + '/templates/' + source.split('::').last
+      end
+
+      abort("Source file does not exist at: #{source}") if ! File.exist?(source)
+      source
+    end
+
     def self.new(templates, options)
       puts "\n" + self.name
 
@@ -13,12 +22,17 @@ module DanarchyDeploy
 
       templates.each do |template|
         next if template[:remove]
-        abort("No target destination set for template: #{template[:source]}!") if !template[:target]
-        abort("No source or data for template: #{template[:target]}") if !template[:source] && !template[:data]
-        abort("Source file does not exist at: #{template[:source]}") if ! File.exist?(template[:source])
+        source = if !template[:target]
+                   abort("No target destination set for template: #{template[:source]}!")
+                 elsif template[:source].nil? && template[:data].nil?
+                   abort("No source or data for template: #{template[:target]}")
+                 elsif template[:data]
+                   '-- encoded data --'
+                 else
+                   load_source(template[:source])
+                 end
 
         target = template[:target]
-        source = template[:source] || '-- encoded data --'
         dir_perms = template[:dir_perms]
         file_perms = template[:file_perms]
         @variables = template[:variables] || nil
@@ -43,7 +57,11 @@ module DanarchyDeploy
         end
 
         File.open(tmpfile, 'w') do |f|
-          result = ERB.new(File.read(source), nil, '-').result(binding)
+          result = if RUBY_VERSION >= '2.6'
+                     ERB.new(File.read(source), trim_mode: '-').result(binding)
+                   else
+                     ERB.new(File.read(source), nil, '-').result(binding)
+                   end
           f.write(result)
           f.close
         end
@@ -54,7 +72,7 @@ module DanarchyDeploy
           puts "\n    - Fake Run: Not changing '#{target}'."
           result[:verify_permissions][File.dirname(tmpfile)] = verify_permissions(File.dirname(tmpfile), dir_perms, options)
           result[:verify_permissions][tmpfile] = verify_permissions(tmpfile, file_perms, options)
-        elsif md5sum(target,tmpfile) == true
+        elsif files_identical?(target,tmpfile)
           puts "\n    - No change in '#{target}': Nothing to update here."
           result[:verify_permissions][File.dirname(target)] = verify_permissions(File.dirname(target), dir_perms, options)
           result[:verify_permissions][target] = verify_permissions(target, file_perms, options)
@@ -141,7 +159,7 @@ module DanarchyDeploy
       [owner, uid, group, gid]
     end
 
-    def self.md5sum(target, tmpfile)
+    def self.files_identical?(target, tmpfile)
       if File.exist?(target) && File.exist?(tmpfile)
         FileUtils.identical?(target, tmpfile)
       elsif File.exist?(target) && !File.exist?(tmpfile)
