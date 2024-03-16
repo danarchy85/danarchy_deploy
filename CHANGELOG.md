@@ -1,3 +1,6 @@
+patch_0.2.8
+- Switch support from RVM to ASDF
+
 patch_0.2.7
 - Patch Templater ERB.new for Ruby versions higher than 2.6
 - Allow builtin:: templates in Templater
