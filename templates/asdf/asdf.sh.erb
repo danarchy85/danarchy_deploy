@@ -1,0 +1,39 @@
+#!/bin/bash
+# Deployed by danarchy_deploy
+#   manages system-wide asdf; still allows for local ~/.asdf
+
+function _load_asdf() {
+    path=${1}
+    export ASDF_DATA_DIR=${path}
+    source ${path}/asdf.sh
+    source ${path}/completions/asdf.bash
+}
+
+if [[ ${UID} == 0 ]]; then
+    if [[ ! -d /opt/asdf ]]; then
+        git clone https://github.com/asdf-vm/asdf.git /opt/asdf
+    fi
+
+    asdf update >/dev/null 2>&1
+    _load_asdf /opt/asdf
+
+    <%- @variables.each do |lang, versions| -%>
+    asdf plugin add <%= lang -%>
+
+    <%- versions.each do |version| -%>
+    asdf install <%= lang -%> <%= version -%>
+    <% end %>
+
+    asdf global <%= lang %> <%= versions.first -%>
+    <% end %>
+
+    asdf current
+fi
+
+if [[ -d ${HOME}/.asdf ]]; then
+    _load_asdf ${HOME}/.asdf
+elif [[ -d /opt/asdf ]]; then
+    _load_asdf /opt/asdf
+fi
+
+unset -f _load_asdf
