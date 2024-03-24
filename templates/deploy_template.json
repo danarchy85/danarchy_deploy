@@ -9,7 +9,7 @@
     "package2"
   ],
   "system": {
-    "update": "all || system || packages || none",
+    "update": "true || all || system || selected || none || false",
     "fstab": {
       "source": "builtin::system/fstab_gentoo_client.erb",
       "mounts": [
