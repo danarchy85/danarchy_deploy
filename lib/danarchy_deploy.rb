@@ -131,6 +131,11 @@ module DanarchyDeploy
         File.delete(template[:target])
       end
 
+      asdf_current_cmd    = _ssh_command(connector, 'sudo -i asdf current')
+      asdf_current_result = DanarchyDeploy::Helpers.run_command(asdf_current_cmd, options)
+
+      puts asdf_current_result[:stderr] if asdf_current_result[:stderr]
+      puts asdf_current_result[:stdout]
     end
 
     def self.gem_install(connector, options)
@@ -138,7 +143,9 @@ module DanarchyDeploy
       install_cmd    = _ssh_command(connector, 'sudo -i gem install -f danarchy_deploy')
       install_result = DanarchyDeploy::Helpers.run_command(install_cmd, options)
 
-      if install_result[:stderr]
+      if install_result[:stderr] =~ /WARN/i
+        puts '   ! ' + install_result[:stderr]
+      elsif install_result[:stderr]
         abort('   ! Gem install failed!')
       else
         puts "   |+ Gem installed!"
@@ -180,7 +187,9 @@ module DanarchyDeploy
       install_cmd    = _ssh_command(connector, "sudo -i gem install --bindir /usr/local/bin -f #{options[:deploy_dir]}/#{File.basename(gem)}")
       install_result = DanarchyDeploy::Helpers.run_command(install_cmd, options)
 
-      if install_result[:stderr]
+      if install_result[:stderr] =~ /WARN/i
+        puts '   ! ' + install_result[:stderr]
+      elsif install_result[:stderr]
         abort('   ! Gem install failed!')
       else
         puts '   |+ Gem installed!'
