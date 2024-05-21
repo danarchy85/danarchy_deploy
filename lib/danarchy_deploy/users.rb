@@ -15,8 +15,8 @@ module DanarchyDeploy
           puts "   - User: #{user[:username]} already exists!"
         else
           group = { groupname: user[:username] }
-          group[:gid] = user[:gid] ? user[:gid] : nil
-          group[:system] = user[:system] ? user[:system] : nil
+          group[:gid]    = user[:gid]    || nil
+          group[:system] = user[:system] || nil
 
           groupcheck_result = DanarchyDeploy::Groups.groupcheck(group, options)
           if !groupcheck_result[:stdout] && group[:gid]
@@ -45,7 +45,7 @@ module DanarchyDeploy
           
           if user[:sudoer]
             puts "\n > Checking sudo rules for user: #{user[:username]}"
-            sudoer(user)
+            sudoer(user, options)
           end
         end
 
@@ -63,13 +63,13 @@ module DanarchyDeploy
     private
     def self.useradd(user, options)
       useradd_cmd  = "useradd #{user[:username]} "
-      useradd_cmd += "--home-dir #{user[:home]} " if user[:home]
-      useradd_cmd += "--create-home " if !Dir.exist?(user[:home])
-      useradd_cmd += "--uid #{user[:uid]} " if user[:uid]
-      useradd_cmd += "--gid #{user[:gid]} " if user[:gid]
+      useradd_cmd += "--home-dir #{user[:home]} "           if user[:home]
+      useradd_cmd += "--create-home "                       if !Dir.exist?(user[:home])
+      useradd_cmd += "--uid #{user[:uid]} "                 if user[:uid]
+      useradd_cmd += "--gid #{user[:gid]} "                 if user[:gid]
       useradd_cmd += "--groups #{user[:groups].join(',')} " if user[:groups]
-      useradd_cmd += "--shell /sbin/nologin " if user[:nologin]
-      useradd_cmd += "--system " if user[:system]
+      useradd_cmd += "--shell /sbin/nologin "               if user[:nologin]
+      useradd_cmd += "--system "                            if user[:system]
       DanarchyDeploy::Helpers.run_command(useradd_cmd, options)
     end
 
@@ -111,40 +111,67 @@ module DanarchyDeploy
       DanarchyDeploy::Helpers.run_command(removegroup_cmd, options)
     end
 
-    def self.authorized_keys(user)
-      ssh_path = user[:home] + '/.ssh'
-      authkeys = ssh_path + '/authorized_keys'
+    def self.authorized_keys(user, options)
+      templates = [
+        {
+          source: File.realpath('./users/authorized_keys.erb'),
+          target: user[:home] + '/.ssh/authorized_keys',
+          dir_perms: {
+            owner: user[:username],
+            group: user[:username],
+            mode:  '0700'
+          },
+          file_perms: {
+            owner: user[:username],
+            group: user[:username],
+            mode:  '0644'
+          },
+          variables: {
+            authorized_keys: user[:ssh_authorized_keys]
+          }
+        }
+      ]
 
-      Dir.exist?(ssh_path) || Dir.mkdir(ssh_path, 0700)
-      File.chown(user[:uid], user[:gid], ssh_path)
-      File.open(authkeys, 'a+') do |f|
-        contents = f.read
-        user[:authorized_keys].each do |authkey|
-          if contents.include?(authkey)
-            puts "   - Key already in place: #{authkey}"
-          else
-            puts "   + Adding authorized_key: #{authkey}"
-            f.puts authkey
-          end
-        end
+      DanarchyDeploy::Templater.new(templates, options)
 
-        f.chown(user[:uid], user[:gid])
-        f.close
-      end
+      # ssh_path = user[:home] + '/.ssh'
+      # authkeys = ssh_path + '/authorized_keys'
+
+      # Dir.exist?(ssh_path) || Dir.mkdir(ssh_path, 0700)
+      # File.chown(user[:uid], user[:gid], ssh_path)
+      # File.open(authkeys, 'a+') do |f|
+      #   contents = f.read
+      #   user[:authorized_keys].each do |authkey|
+      #     if contents.include?(authkey)
+      #       puts "   - Key already in place: #{authkey}"
+      #     else
+      #       puts "   + Adding authorized_key: #{authkey}"
+      #       f.puts authkey
+      #     end
+      #   end
+
+      #   f.chown(user[:uid], user[:gid])
+      #   f.close
+      # end
     end
 
-    def self.sudoer(user)
-      sudoer_file = '/etc/sudoers.d/danarchy_deploy-' + user[:username]
-      File.open(sudoer_file, 'a+') do |f|
-        if !f.read.include?(user[:sudoer])
-          puts "   |+ Added: '#{user[:sudoer]}'"
-          f.puts user[:sudoer]
-        else
-          puts '   - No change needed'
-        end
+    def self.sudoer(user, options)
+      templates = [
+        {
+          source: File.realpath('./users/sudoers.erb'),
+          target: '/etc/sudoers.d/danarchy_deploy-' + user[:username],
+          file_perms: {
+            owner: 'root',
+            group: 'root',
+            mode: '0440'
+          },
+          variables: {
+            rules: user[:sudoer]
+          }
+        }
+      ]
 
-        f.close
-      end
+      DanarchyDeploy::Templater.new(templates, options)
     end
   end
 end

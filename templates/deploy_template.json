@@ -42,7 +42,7 @@
       "home": "/home/username",
       "uid": int,
       "gid": int,
-      "sudoer": "username ALL = NOPASSWD: ALL",
+      "sudoer": ["username ALL=(ALL) NOPASSWD:ALL"],
       "ssh-authorized_keys": [
         "ssh-ed25519 it0C5o6GHC8lxqctpexakfdA5o7LeSe+QbMhIl+GYtZ2OCMFliLsODDrrazR+u2y user@hostname",
         "ssh-rsa K0APeEvotGunpBrl/LvSAG/gLUldCnOrL60v47QYjuqoGJmM3Fk8V29+8jZPp9Dl user@hostname"
