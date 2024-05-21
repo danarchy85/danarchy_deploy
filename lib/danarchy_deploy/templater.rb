@@ -95,13 +95,12 @@ module DanarchyDeploy
       chmod = nil
       puts "\n >  Verifying ownership and permissions for '#{target}'"
       if perms
-        puts "    |+ Setting file mode to: #{perms[:mode]}"
         (owner, group, mode) = perms[:owner], perms[:group], perms[:mode]
       else
         if File.stat(target).mode & 07777 == '0777'.to_i(8)
           puts "     ! '#{target}' has 0777 permissions! Setting those to something more sane."
           if File.ftype(target) == 'directory'
-            puts "    |+ Setting file mode to: 0775"
+            puts "    |+ Setting directory mode to: 0775"
             chmod = File.chmod(0775, target) ? true : false if !options[:pretend]
           elsif  File.ftype(target) == 'file'
             puts "    |+ Setting file mode to: 0644"

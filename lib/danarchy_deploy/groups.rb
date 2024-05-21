@@ -18,7 +18,6 @@ module DanarchyDeploy
         end
       end
 
-      # [groupadd_result, groupdel_result]
       deployment
     end
 
