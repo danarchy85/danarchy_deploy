@@ -267,7 +267,7 @@ module DanarchyDeploy
     end
 
     def self._locate_gem_binary(connector, options)
-      locate_cmd    = _ssh_command(connector, 'sudo which danarchy_deploy')
+      locate_cmd    = _ssh_command(connector, 'sudo -i which danarchy_deploy')
       locate_result = DanarchyDeploy::Helpers.run_command(locate_cmd, options)
 
       if locate_result[:stderr]
