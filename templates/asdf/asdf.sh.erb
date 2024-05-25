@@ -2,6 +2,18 @@
 # Deployed by danarchy_deploy
 #   manages system-wide asdf; still allows for local ~/.asdf
 
+function _run_now() {
+    tmp_file=/tmp/asdf_next_run.tmp
+    next_run=$(cat ${tmp_file} 2>/dev/null || echo 0)
+
+    echo ${next_run}
+    if [[ $(date '+%s') > ${next_run} ]]; then
+        echo 'true'
+    else
+        echo 'false'
+    fi
+}
+
 function _load_asdf() {
     path=${1}
     export ASDF_DATA_DIR=${path}
@@ -9,7 +21,7 @@ function _load_asdf() {
     source ${path}/completions/asdf.bash
 }
 
-if [[ ${UID} == 0 ]]; then
+if [[ ${UID} == 0 && $(_run_now) == 'true' ]]; then
     if [[ ! -d /opt/asdf ]]; then
         git clone https://github.com/asdf-vm/asdf.git /opt/asdf
     fi
@@ -27,6 +39,7 @@ if [[ ${UID} == 0 ]]; then
     asdf global <%= lang %> <%= versions.first -%>
     <% end %>
 
+    date -d '1 hour' '+%s' > /tmp/asdf_next_run.tmp
     asdf current
 fi
 
@@ -36,4 +49,5 @@ elif [[ -d /opt/asdf ]]; then
     _load_asdf /opt/asdf
 fi
 
+unset -f _run_now
 unset -f _load_asdf
