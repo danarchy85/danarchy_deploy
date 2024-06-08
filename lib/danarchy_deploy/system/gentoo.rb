@@ -36,7 +36,6 @@ module DanarchyDeploy
       end
 
       private
-
       def self.emerge_sync(options)
         File.open('/tmp/datetime', 'a+') do |f|
           last_sync = f.getbyte ? DateTime.parse(f.read) : (DateTime.now - 2)

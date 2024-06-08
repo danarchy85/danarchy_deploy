@@ -6,6 +6,7 @@ module DanarchyDeploy
         puts "\n" + self.name
         puts "#{deployment[:os].capitalize} detected! Using zypper."
 
+        set_hostname(deployment[:hostname])
         puts "Updating zypper repositories..."
         DanarchyDeploy::Helpers.run_command('sudo zypper refresh', options)
 
@@ -16,6 +17,11 @@ module DanarchyDeploy
         # Needs package checking & testing
 
         [installer, updater, cleaner]
+      end
+
+      private
+      def set_hostname(hostname)
+        `hostnamectl hostname #{hostname}`
       end
     end
   end

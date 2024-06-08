@@ -1,0 +1,30 @@
+{
+  "volumes": {
+    "/dev/vdb": {
+      "filesystems": [
+        {  
+          
+          "crypt": {
+            
+          },
+          "fstab": {
+            "filesystem": "/dev/mapper/dm-vg0-mongodb",
+            "mountpoint": "/var/lib/mongodb",
+            "type": "xfs",
+            "opts": "defaults,noatime",
+            "dump/pass": "0 0"
+          }
+        }
+      ]
+    }
+  }
+  "mounts": [
+    {
+      "filesystem": "/dev/mapper/dm-vg0-mongodb",
+      "mountpoint": "/var/lib/mongodb",
+      "type": "xfs",
+      "opts": "defaults,noatime",
+      "dump/pass": "0 0"
+    }
+  ]
+}

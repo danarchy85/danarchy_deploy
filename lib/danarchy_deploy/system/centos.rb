@@ -6,11 +6,18 @@ module DanarchyDeploy
         puts "\n" + self.name
         puts "#{deployment[:os].capitalize} detected! Using yum."
         # needs more testing
+
+        set_hostname(deployment[:hostname])
         installer = 'yum install -y '
         updater = 'yum upgrade -y'
         cleaner = 'yum clean all'
 
         [installer, updater, cleaner]
+      end
+
+      private
+      def set_hostname(hostname)
+        `hostnamectl hostname #{hostname}`
       end
     end
   end
