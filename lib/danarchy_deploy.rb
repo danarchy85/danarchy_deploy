@@ -51,7 +51,7 @@ module DanarchyDeploy
                     ssh_key:  deployment[:ssh_key] }
 
       remote_mkdir(connector, options)
-      asdf_install(connector, options)
+      # asdf_install(connector, options)
 
       if options[:dev_gem]
         puts "\nDev Gem mode: Building and pushing gem..."
@@ -104,39 +104,39 @@ module DanarchyDeploy
       end
     end
 
-    def self.asdf_install(connector, options)
-      versions = JSON.parse(
-        File.read(File.expand_path('../', __dir__) + '/.asdf_versions.json'),
-        symbolize_names: true)
+    # def self.asdf_install(connector, options)
+    #   versions = JSON.parse(
+    #     File.read(File.expand_path('../', __dir__) + '/.asdf_versions.json'),
+    #     symbolize_names: true)
 
-      template = {
-        target:    '/tmp/asdf.sh_' + Random.hex(6),
-        source:    'builtin::asdf/asdf.sh.erb',
-        variables: versions
-      }
+    #   template = {
+    #     target:    '/tmp/asdf.sh_' + Random.hex(6),
+    #     source:    'builtin::asdf/asdf.sh.erb',
+    #     variables: versions
+    #   }
 
-      DanarchyDeploy::Templater.new([template], options)
-      push_cmd    = _scp_push(connector, template[:target], '/tmp')
-      push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
+    #   DanarchyDeploy::Templater.new([template], options)
+    #   push_cmd    = _scp_push(connector, template[:target], '/tmp')
+    #   push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
 
-      if push_result[:stderr]
-        abort('   ! Asdf push failed!')
-      else
-        puts '   |+ Asdf pushed!'
-        asdf_chown_cmd    = _ssh_command(
-          connector,
-          "sudo mv -v #{template[:target]} /etc/profile.d/asdf.sh && " +
-          'sudo chown -c root:root /etc/profile.d/asdf.sh')
-        asdf_chown_result = DanarchyDeploy::Helpers.run_command(asdf_chown_cmd, options)
-        File.delete(template[:target])
-      end
+    #   if push_result[:stderr]
+    #     abort('   ! Asdf push failed!')
+    #   else
+    #     puts '   |+ Asdf pushed!'
+    #     asdf_chown_cmd    = _ssh_command(
+    #       connector,
+    #       "sudo mv -v #{template[:target]} /etc/profile.d/asdf.sh && " +
+    #       'sudo chown -c root:root /etc/profile.d/asdf.sh')
+    #     asdf_chown_result = DanarchyDeploy::Helpers.run_command(asdf_chown_cmd, options)
+    #     File.delete(template[:target])
+    #   end
 
-      asdf_current_cmd    = _ssh_command(connector, 'sudo -i asdf current')
-      asdf_current_result = DanarchyDeploy::Helpers.run_command(asdf_current_cmd, options)
+    #   asdf_current_cmd    = _ssh_command(connector, 'sudo -i asdf current')
+    #   asdf_current_result = DanarchyDeploy::Helpers.run_command(asdf_current_cmd, options)
 
-      puts asdf_current_result[:stderr] if asdf_current_result[:stderr]
-      puts asdf_current_result[:stdout]
-    end
+    #   puts asdf_current_result[:stderr] if asdf_current_result[:stderr]
+    #   puts asdf_current_result[:stdout]
+    # end
 
     def self.gem_install(connector, options)
       puts "\n > Installing danarchy_deploy on #{connector[:hostname]}"
