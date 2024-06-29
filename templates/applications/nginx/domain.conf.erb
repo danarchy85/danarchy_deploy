@@ -1,0 +1,38 @@
+server {
+    server_name www.<%= @variables[:domain] %>;
+    listen 80;
+    return 301 http://<%= @variables[:domain] %>/$request_uri;
+}
+
+server {
+    server_name <%= @variables[:domain] %>;
+    listen 80;
+
+    server_tokens off;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header X-Frame-Options "SAMEORIGIN";
+
+    access_log /home/<%= @variables[:username] %>/nginx/logs/<%= @variables[:domain] %>/access_log main;
+    error_log /home/<%= @variables[:username] %>/nginx/logs/<%= @variables[:domain] %>/error_log info;
+
+    root /home/<%= @variables[:username] %>/<%= @variables[:domain] %>;
+    index index.php;
+
+    location / {
+	try_files $uri $uri/ /index.php?q=$uri&$args;
+
+    }
+
+    location ~ \.php$ {
+	try_files $uri =404;
+	include /etc/nginx/fastcgi_params;
+	fastcgi_buffers 16 16k;
+	fastcgi_buffer_size 32k;
+	fastcgi_split_path_info ^(.+\.php)(/.+)$;
+	fastcgi_pass unix:/var/run/php-fpm-<%= @variables[:domain].gsub('.','_') %>.sock;
+	fastcgi_param SCRIPT_FILENAME $document_root/$fastcgi_script_name;
+	fastcgi_index index.php;
+
+    }
+}

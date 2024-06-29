@@ -1,0 +1,11 @@
+[mysql]
+<%= @variables[:host] ? "host=\"#{@variables[:host]}\"\n" : '' -%>
+<%= @variables[:user] ? "user=\"#{@variables[:user]}\"\n" : '' -%>
+<%= @variables[:pass] ? "password=\"#{@variables[:pass]}\"\n" : '' -%>
+<%= @variables[:port] ? "port=\"#{@variables[:port]}\"\n" : '' -%>
+
+[client]
+<%= @variables[:host] ? "host=\"#{@variables[:host]}\"\n" : '' -%>
+<%= @variables[:user] ? "user=\"#{@variables[:user]}\"\n" : '' -%>
+<%= @variables[:pass] ? "password=\"#{@variables[:pass]}\"\n" : '' -%>
+<%= @variables[:port] ? "port=\"#{@variables[:port]}\"\n" : '' -%>

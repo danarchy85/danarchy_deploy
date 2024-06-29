@@ -1,0 +1,3 @@
+# Allow EC algorithms in OpenSSL/OpenSSH (patents blocked with bindist)
+dev-libs/openssl -bindist
+net-misc/openssh -bindist

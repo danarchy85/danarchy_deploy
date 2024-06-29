@@ -1,0 +1,19 @@
+[<%= @variables[:username] %>]
+user = <%= @variables[:username] %>
+group = <%= @variables[:username] %>
+
+listen = /var/run/php7-fpm-<%= @variables[:username] %>.sock
+<% if @variables[:web_user] %>
+listen.owner = <%= @variables[:web_user] %>
+listen.group = <%= @variables[:web_user] %>
+<% end %>
+pm = dynamic
+pm.max_children = 4
+pm.start_servers = 1
+pm.min_spare_servers = 1
+pm.max_spare_servers = 2
+
+env[TMP] = <%= @variables[:tmp] %>
+env[TMPDIR] = <%= @variables[:tmp] %>
+env[TEMP] = <%= @variables[:tmp] %>
+env[PATH] = /usr/local/bin:/usr/bin:/bin
