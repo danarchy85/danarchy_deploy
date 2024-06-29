@@ -114,7 +114,7 @@ module DanarchyDeploy
     def self.authorized_keys(user, options)
       templates = [
         {
-          source: File.realpath('./users/authorized_keys.erb'),
+          source: 'builtin::system/authorized_keys.erb',
           target: user[:home] + '/.ssh/authorized_keys',
           dir_perms: {
             owner: user[:username],
@@ -158,7 +158,7 @@ module DanarchyDeploy
     def self.sudoer(user, options)
       templates = [
         {
-          source: File.realpath('./users/sudoers.erb'),
+          source: 'builtin::system/sudoers.erb',
           target: '/etc/sudoers.d/danarchy_deploy-' + user[:username],
           file_perms: {
             owner: 'root',
