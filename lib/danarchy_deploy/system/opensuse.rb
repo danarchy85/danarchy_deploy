@@ -6,7 +6,7 @@ module DanarchyDeploy
         puts "\n" + self.name
         puts "#{deployment[:os].capitalize} detected! Using zypper."
 
-        set_hostname(deployment[:hostname])
+        set_hostname(deployment[:hostname]) if !options[:pretend]
         puts "Updating zypper repositories..."
         DanarchyDeploy::Helpers.run_command('sudo zypper refresh', options)
 

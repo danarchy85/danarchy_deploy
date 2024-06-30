@@ -7,7 +7,7 @@ module DanarchyDeploy
         puts "\n" + self.name
         puts "#{deployment[:os].capitalize} detected! Using apt."
 
-        set_hostname(deployment[:hostname])
+        set_hostname(deployment[:hostname]) if !options[:pretend]
         if deployment[:apt]
           if deployment[:apt][:templates]
             puts "\nChecking Apt configs."

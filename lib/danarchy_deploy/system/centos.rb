@@ -7,7 +7,7 @@ module DanarchyDeploy
         puts "#{deployment[:os].capitalize} detected! Using yum."
         # needs more testing
 
-        set_hostname(deployment[:hostname])
+        set_hostname(deployment[:hostname]) if !options[:pretend]
         installer = 'yum install -y '
         updater = 'yum upgrade -y'
         cleaner = 'yum clean all'
