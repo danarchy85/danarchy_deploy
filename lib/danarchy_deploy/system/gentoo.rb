@@ -18,7 +18,11 @@ module DanarchyDeploy
         cleaner  = 'emerge --depclean --quiet '
         cleaner += '--pretend ' if options[:pretend]
 
-        emerge_sync_wait
+        if emerge_sync_in_progress
+          puts "\n >  Waiting for emerge sync to complete."
+          emerge_sync_wait
+        end
+
         if deployment[:portage]
           if deployment[:portage][:templates]
             puts "\nChecking Portage configs."
@@ -32,18 +36,16 @@ module DanarchyDeploy
       end
 
       private
-      def self.emerge_sync_wait
+      def self.emerge_sync_in_progress
         repo_path = `emerge --info | grep location`.chomp.split(': ').last
+        Dir.exist?(repo_path + '/.tmp-unverified-download-quarantine')
+      end
 
-        if Dir.exist?(repo_path + '/.tmp-unverified-download-quarantine')
-          puts "\n >  Waiting for emerge sync to complete."
-
-          while Dir.exist?(repo_path + '/.tmp-unverified-download-quarantine')
-            sleep 3
-          end
-
-          puts "     |> Continuing with emerge!"
+      def self.emerge_sync_wait
+        while emerge_sync_in_progress
+          sleep 3
         end
+        puts "     |> Continuing with emerge!"
       end
 
       def self.emerge_sync(sync, options)
@@ -82,7 +84,7 @@ module DanarchyDeploy
                     else
                       [
                         {
-                          source: 'builtin::/crontab.erb',
+                          source: 'builtin::system/crontab.erb',
                           target: '/var/spool/cron/crontabs/portage',
                           dir_perms: {
                             owner: 'root',
