@@ -3,9 +3,10 @@ module DanarchyDeploy
   module Services
     class Init
       class Openrc
-        def initialize(service, options)
-          @service = service
-          @options = options
+        def initialize(service, runlevel, options)
+          @service  = service
+          @runlevel = runlevel
+          @options  = options
         end
 
         def status
@@ -58,13 +59,16 @@ module DanarchyDeploy
         end
 
         def enable
-          cmd = "rc-update add #{@service} default"
+          cmd = "rc-update add #{@service} #{@runlevel}"
           DanarchyDeploy::Helpers.run_command(cmd, @options)
         end
 
         def disable
-          cmd = "rc-update del #{@service} default"
-          DanarchyDeploy::Helpers.run_command(cmd, @options)
+          Dir["/etc/runlevels/*/#{@service}"].each do |svc|
+            runlevel, service = svc.split('/')[3,4]
+            cmd = "rc-update del #{service} #{runlevel}"
+            DanarchyDeploy::Helpers.run_command(cmd, @options)
+          end
         end
       end
     end
