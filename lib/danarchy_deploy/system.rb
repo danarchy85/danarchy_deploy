@@ -13,7 +13,7 @@ module DanarchyDeploy
       puts "\n" + self.name
 
       installer, updater, cleaner = prep_operating_system(deployment, options)
-      install_result = nil
+      install_result, updater_result = nil, nil
 
       puts "\n > Package Installation"
       if [true, 'all', 'selected', nil].include?(deployment[:system][:update]) &&
@@ -33,12 +33,15 @@ module DanarchyDeploy
         puts "\n   - Running system updates..."
         updater_result = DanarchyDeploy::Helpers.run_command(updater, options)
         puts updater_result[:stdout] if updater_result[:stdout]
-        puts "\n   - Cleaning up unused packages..."
-        cleanup_result = DanarchyDeploy::Helpers.run_command(cleaner, options)
-        puts cleanup_result[:stdout] if cleanup_result[:stdout]
       else
         puts "\n   - Not running #{deployment[:os].capitalize} system updates."
         puts "       |_ Updates selected: #{deployment[:system][:update]}"
+      end
+
+      if install_result || updater_result
+        puts "\n   - Cleaning up unused packages..."
+        cleanup_result = DanarchyDeploy::Helpers.run_command(cleaner, options)
+        puts cleanup_result[:stdout] if cleanup_result[:stdout]
       end
 
       deployment
