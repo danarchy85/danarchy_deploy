@@ -3,7 +3,7 @@ require_relative 'system/debian'
 require_relative 'system/gentoo'
 require_relative 'system/opensuse'
 
-require_relative 'system/cryptsetup'
+# require_relative 'system/cryptsetup'
 require_relative 'system/fstab'
 
 module DanarchyDeploy
@@ -63,7 +63,8 @@ module DanarchyDeploy
           DanarchyDeploy::Templater.new(deployment[:system][:templates], options)
         end
 
-        DanarchyDeploy::System::Cryptsetup.new(deployment[:os], deployment[:system][:cryptsetup], options)
+        # Disabled due to Init changes; re-writing and splitting LVM/CryptSetup
+        # DanarchyDeploy::System::Cryptsetup.new(deployment[:os], deployment[:system][:cryptsetup], options)
 
         if deployment[:system][:fstab]
           DanarchyDeploy::System::Fstab.new(deployment[:os], deployment[:system][:fstab], options)
