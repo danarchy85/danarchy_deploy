@@ -12,9 +12,12 @@ module DanarchyDeploy
           next if ! params[:init]
           if params[:init].class == Array
             # one-time update for :init to new format
-            params[:init] = { runlevel: 'default', actions: params[:init] }
+            params[:init] =  if deployment[:os] == 'gentoo'
+                               { runlevel: 'default', actions: params[:init] }
+                             else
+                               { actions: params[:init] }
+                             end
           end
-          params[:init].delete(:runlevel) if deployment[:os] != 'gentoo'
 
           init_manager(deployment[:os], service, params[:init][:runlevel], options)
           puts "\n > Init actions for #{service}: #{params[:init][:actions].join(', ')}"
