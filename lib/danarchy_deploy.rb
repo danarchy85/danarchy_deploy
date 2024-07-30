@@ -43,8 +43,7 @@ module DanarchyDeploy
     def self.new(deployment, options)
       puts "\n" + self.name
 
-      options[:working_dir] = options[:deploy_dir] + '/' + deployment[:hostname]
-      pretend = options[:pretend] ; options[:pretend] = false
+      @working_dir = File.dirname(options[:deploy_file]) + '/'
       connector = { hostname: deployment[:hostname],
                     ipv4:     deployment[:ipv4],
                     ssh_user: deployment[:ssh_user],
@@ -66,7 +65,6 @@ module DanarchyDeploy
       push_templates(connector, options)
       push_deployment(connector, options)
 
-      options[:pretend] = pretend
       deploy_result = remote_LocalDeploy(connector, gem_binary, options)
 
       abort("\n ! Deployment failed to complete!") if !deploy_result
@@ -82,8 +80,9 @@ module DanarchyDeploy
 
     private
     def self.remote_mkdir(connector, options)
-      puts "\n > Creating directory: #{options[:working_dir]}"
-      mkdir_cmd = _ssh_command(connector, "test -d #{options[:working_dir]} && echo 'Directory exists!' || sudo mkdir -vp #{options[:working_dir]}")
+      pretend = options[:pretend] ; options[:pretend] = false
+      puts "\n > Creating directory: #{@working_dir}"
+      mkdir_cmd = _ssh_command(connector, "test -d #{@working_dir} && echo 'Directory exists!' || sudo mkdir -vp #{@working_dir}")
       mkdir_result = DanarchyDeploy::Helpers.run_command(mkdir_cmd, options)
 
       if mkdir_result[:stderr] && ! mkdir_result[:stdout]
@@ -97,6 +96,7 @@ module DanarchyDeploy
                                           "sudo chmod -c 0750 #{options[:deploy_dir]}")
       chown_result = DanarchyDeploy::Helpers.run_command(chown_cmd, options)
 
+      options[:pretend] = pretend
       if chown_result[:stderr]
         abort('   ! Setting directory permissions failed!')
       else
@@ -173,6 +173,7 @@ module DanarchyDeploy
     end
 
     def self.dev_gem_install(connector, gem, options)
+      pretend = options[:pretend] ; options[:pretend] = false
       puts "\n > Pushing gem: #{gem} to #{connector[:hostname]}"
       push_cmd    = _scp_push(connector, gem, options[:deploy_dir])
       push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
@@ -187,6 +188,7 @@ module DanarchyDeploy
       install_cmd    = _ssh_command(connector, "sudo -i gem install --bindir /usr/local/bin -f #{options[:deploy_dir]}/#{File.basename(gem)}")
       install_result = DanarchyDeploy::Helpers.run_command(install_cmd, options)
 
+      options[:pretend] = pretend
       if install_result[:stderr] =~ /WARN/i
         puts '   ! ' + install_result[:stderr]
       elsif install_result[:stderr]
@@ -210,19 +212,19 @@ module DanarchyDeploy
       if push_result[:stderr]
         abort('   ! Templates push failed!')
       else
-        puts "   |+ Templates pushed to '#{options[:working_dir]}'!"
+        puts "   |+ Templates pushed to '#{template_dir}'!"
       end
     end
 
     def self.push_deployment(connector, options)
       puts "\n > Pushing deployment: #{options[:deploy_file]}"
-      push_cmd    = _rsync_push(connector, options[:working_dir], options[:working_dir])
+      push_cmd    = _rsync_push(connector, @working_dir, @working_dir)
       push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
 
       if push_result[:stderr]
         abort('   ! Deployment push failed!')
       else
-        puts "   |+ Deployment pushed to '#{options[:working_dir]}'!"
+        puts "   |+ Deployment pushed to '#{@working_dir}'!"
       end
     end
 
@@ -256,7 +258,7 @@ module DanarchyDeploy
 
     def self.remote_cleanup(connector, options)
       puts "\n > Cleaning up: #{options[:deploy_dir]}"
-      cleanup_cmd    = _ssh_command(connector, "sudo rm -rfv #{options[:working_dir]}")
+      cleanup_cmd    = _ssh_command(connector, "sudo rm -rfv #{@working_dir}")
       cleanup_result = DanarchyDeploy::Helpers.run_command(cleanup_cmd, options)
 
       if cleanup_result[:stderr]
