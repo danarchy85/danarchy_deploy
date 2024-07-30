@@ -8,6 +8,7 @@ module DanarchyDeploy
 
       deployment[:users].each do |username, user|
         user[:username] = username.to_s
+        user[:home]   ||= '/home/' + username.to_s
         puts "\n > Checking if user '#{user[:username]}' already exists."
         usercheck_result = usercheck(user, options)
 
@@ -40,7 +41,7 @@ module DanarchyDeploy
 
           if user[:authorized_keys]
             puts "\n > Checking on #{user[:authorized_keys].count} authorized_keys for user: #{user[:username]}"
-            authorized_keys(user)
+            authorized_keys(user, options)
           end
           
           if user[:sudoer]
@@ -64,7 +65,7 @@ module DanarchyDeploy
     def self.useradd(user, options)
       useradd_cmd  = "useradd #{user[:username]} "
       useradd_cmd += "--home-dir #{user[:home]} "           if user[:home]
-      useradd_cmd += "--create-home "                       if !Dir.exist?(user[:home])
+      useradd_cmd += "--create-home "                       if ! Dir.exist?(user[:home])
       useradd_cmd += "--uid #{user[:uid]} "                 if user[:uid]
       useradd_cmd += "--gid #{user[:gid]} "                 if user[:gid]
       useradd_cmd += "--groups #{user[:groups].join(',')} " if user[:groups]
@@ -127,32 +128,12 @@ module DanarchyDeploy
             mode:  '0644'
           },
           variables: {
-            authorized_keys: user[:ssh_authorized_keys]
+            authorized_keys: user[:authorized_keys]
           }
         }
       ]
 
       DanarchyDeploy::Templater.new(templates, options)
-
-      # ssh_path = user[:home] + '/.ssh'
-      # authkeys = ssh_path + '/authorized_keys'
-
-      # Dir.exist?(ssh_path) || Dir.mkdir(ssh_path, 0700)
-      # File.chown(user[:uid], user[:gid], ssh_path)
-      # File.open(authkeys, 'a+') do |f|
-      #   contents = f.read
-      #   user[:authorized_keys].each do |authkey|
-      #     if contents.include?(authkey)
-      #       puts "   - Key already in place: #{authkey}"
-      #     else
-      #       puts "   + Adding authorized_key: #{authkey}"
-      #       f.puts authkey
-      #     end
-      #   end
-
-      #   f.chown(user[:uid], user[:gid])
-      #   f.close
-      # end
     end
 
     def self.sudoer(user, options)
