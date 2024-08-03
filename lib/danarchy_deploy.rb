@@ -49,6 +49,7 @@ module DanarchyDeploy
                     ssh_user: deployment[:ssh_user],
                     ssh_key:  deployment[:ssh_key] }
 
+      pretend = options[:pretend] ; options[:pretend] = false
       remote_mkdir(connector, options)
       # asdf_install(connector, options)
 
@@ -65,6 +66,7 @@ module DanarchyDeploy
       push_templates(connector, options)
       push_deployment(connector, options)
 
+      options[:pretend] = pretend
       deploy_result = remote_LocalDeploy(connector, gem_binary, options)
 
       abort("\n ! Deployment failed to complete!") if !deploy_result
@@ -73,14 +75,13 @@ module DanarchyDeploy
       # remote_cleanup(connector, options) if !options[:pretend]
 
       puts "\nRemote deployment complete!"
-      deployment = JSON.parse(File.read(options[:deploy_file]), symbolize_names: true) if options[:deploy_file].end_with?('.json')
-      deployment = YAML.load_file(options[:deploy_file]) if options[:deploy_file].end_with?('.yaml')
-      deployment
+      options[:deploy_file].end_with?('.json') ?
+        JSON.parse(File.read(options[:deploy_file]), symbolize_names: true) :
+        YAML.load_file(options[:deploy_file]) if options[:deploy_file].end_with?('.yaml')
     end
 
     private
     def self.remote_mkdir(connector, options)
-      pretend = options[:pretend] ; options[:pretend] = false
       puts "\n > Creating directory: #{@working_dir}"
       mkdir_cmd = _ssh_command(connector, "test -d #{@working_dir} && echo 'Directory exists!' || sudo mkdir -vp #{@working_dir}")
       mkdir_result = DanarchyDeploy::Helpers.run_command(mkdir_cmd, options)
@@ -96,7 +97,6 @@ module DanarchyDeploy
                                           "sudo chmod -c 0750 #{options[:deploy_dir]}")
       chown_result = DanarchyDeploy::Helpers.run_command(chown_cmd, options)
 
-      options[:pretend] = pretend
       if chown_result[:stderr]
         abort('   ! Setting directory permissions failed!')
       else
@@ -173,7 +173,6 @@ module DanarchyDeploy
     end
 
     def self.dev_gem_install(connector, gem, options)
-      pretend = options[:pretend] ; options[:pretend] = false
       puts "\n > Pushing gem: #{gem} to #{connector[:hostname]}"
       push_cmd    = _scp_push(connector, gem, options[:deploy_dir])
       push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
@@ -188,7 +187,6 @@ module DanarchyDeploy
       install_cmd    = _ssh_command(connector, "sudo -i gem install --bindir /usr/local/bin -f #{options[:deploy_dir]}/#{File.basename(gem)}")
       install_result = DanarchyDeploy::Helpers.run_command(install_cmd, options)
 
-      options[:pretend] = pretend
       if install_result[:stderr] =~ /WARN/i
         puts '   ! ' + install_result[:stderr]
       elsif install_result[:stderr]
