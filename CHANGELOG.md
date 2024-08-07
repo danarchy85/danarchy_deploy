@@ -1,3 +1,12 @@
+patch_0.2.8
+- Switch support from RVM to ASDF
+- users.rb: use Templater to handle authorized_users and sudoers
+- danarchy_deploy.rb: ignore WARNs in gem install
+- danarchy_deploy.rb: use sudo -i to load environment
+- Templater: add builtin templates
+- Gentoo: wait_for_sync
+- System::Init: OpenRC runlevel support
+
 patch_0.2.7
 - Patch Templater ERB.new for Ruby versions higher than 2.6
 - Allow builtin:: templates in Templater

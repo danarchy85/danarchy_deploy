@@ -43,13 +43,15 @@ module DanarchyDeploy
     def self.new(deployment, options)
       puts "\n" + self.name
 
-      options[:working_dir] = options[:deploy_dir] + '/' + deployment[:hostname]
+      @working_dir = File.dirname(options[:deploy_file]) + '/'
       connector = { hostname: deployment[:hostname],
                     ipv4:     deployment[:ipv4],
                     ssh_user: deployment[:ssh_user],
                     ssh_key:  deployment[:ssh_key] }
 
+      pretend = options[:pretend] ; options[:pretend] = false
       remote_mkdir(connector, options)
+      # asdf_install(connector, options)
 
       if options[:dev_gem]
         puts "\nDev Gem mode: Building and pushing gem..."
@@ -63,6 +65,8 @@ module DanarchyDeploy
       gem_binary = _locate_gem_binary(connector, options) # this should run before any install; check version too
       push_templates(connector, options)
       push_deployment(connector, options)
+
+      options[:pretend] = pretend
       deploy_result = remote_LocalDeploy(connector, gem_binary, options)
 
       abort("\n ! Deployment failed to complete!") if !deploy_result
@@ -71,15 +75,15 @@ module DanarchyDeploy
       # remote_cleanup(connector, options) if !options[:pretend]
 
       puts "\nRemote deployment complete!"
-      deployment = JSON.parse(File.read(options[:deploy_file]), symbolize_names: true) if options[:deploy_file].end_with?('.json')
-      deployment = YAML.load_file(options[:deploy_file]) if options[:deploy_file].end_with?('.yaml')
-      deployment
+      options[:deploy_file].end_with?('.json') ?
+        JSON.parse(File.read(options[:deploy_file]), symbolize_names: true) :
+        YAML.load_file(options[:deploy_file]) if options[:deploy_file].end_with?('.yaml')
     end
 
     private
     def self.remote_mkdir(connector, options)
-      puts "\n > Creating directory: #{options[:working_dir]}"
-      mkdir_cmd = _ssh_command(connector, "test -d #{options[:working_dir]} && echo 'Directory exists!' || sudo mkdir -vp #{options[:working_dir]}")
+      puts "\n > Creating directory: #{@working_dir}"
+      mkdir_cmd = _ssh_command(connector, "test -d #{@working_dir} && echo 'Directory exists!' || sudo mkdir -vp #{@working_dir}")
       mkdir_result = DanarchyDeploy::Helpers.run_command(mkdir_cmd, options)
 
       if mkdir_result[:stderr] && ! mkdir_result[:stdout]
@@ -100,12 +104,48 @@ module DanarchyDeploy
       end
     end
 
+    # def self.asdf_install(connector, options)
+    #   versions = JSON.parse(
+    #     File.read(File.expand_path('../', __dir__) + '/.asdf_versions.json'),
+    #     symbolize_names: true)
+
+    #   template = {
+    #     target:    '/tmp/asdf.sh_' + Random.hex(6),
+    #     source:    'builtin::asdf/asdf.sh.erb',
+    #     variables: versions
+    #   }
+
+    #   DanarchyDeploy::Templater.new([template], options)
+    #   push_cmd    = _scp_push(connector, template[:target], '/tmp')
+    #   push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
+
+    #   if push_result[:stderr]
+    #     abort('   ! Asdf push failed!')
+    #   else
+    #     puts '   |+ Asdf pushed!'
+    #     asdf_chown_cmd    = _ssh_command(
+    #       connector,
+    #       "sudo mv -v #{template[:target]} /etc/profile.d/asdf.sh && " +
+    #       'sudo chown -c root:root /etc/profile.d/asdf.sh')
+    #     asdf_chown_result = DanarchyDeploy::Helpers.run_command(asdf_chown_cmd, options)
+    #     File.delete(template[:target])
+    #   end
+
+    #   asdf_current_cmd    = _ssh_command(connector, 'sudo -i asdf current')
+    #   asdf_current_result = DanarchyDeploy::Helpers.run_command(asdf_current_cmd, options)
+
+    #   puts asdf_current_result[:stderr] if asdf_current_result[:stderr]
+    #   puts asdf_current_result[:stdout]
+    # end
+
     def self.gem_install(connector, options)
       puts "\n > Installing danarchy_deploy on #{connector[:hostname]}"
-      install_cmd = _ssh_command(connector, 'sudo gem install -f danarchy_deploy')
+      install_cmd    = _ssh_command(connector, 'sudo -i gem install -f danarchy_deploy')
       install_result = DanarchyDeploy::Helpers.run_command(install_cmd, options)
 
-      if install_result[:stderr]
+      if install_result[:stderr] =~ /WARN/i
+        puts '   ! ' + install_result[:stderr]
+      elsif install_result[:stderr]
         abort('   ! Gem install failed!')
       else
         puts "   |+ Gem installed!"
@@ -134,7 +174,7 @@ module DanarchyDeploy
 
     def self.dev_gem_install(connector, gem, options)
       puts "\n > Pushing gem: #{gem} to #{connector[:hostname]}"
-      push_cmd = _scp_push(connector, gem, options[:deploy_dir])
+      push_cmd    = _scp_push(connector, gem, options[:deploy_dir])
       push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
 
       if push_result[:stderr]
@@ -144,10 +184,12 @@ module DanarchyDeploy
       end
       
       puts "\n > Installing gem: #{gem} on #{connector[:hostname]}"
-      install_cmd = _ssh_command(connector, "sudo gem install --bindir /usr/local/bin -f #{options[:deploy_dir]}/#{File.basename(gem)}")
+      install_cmd    = _ssh_command(connector, "sudo -i gem install --bindir /usr/local/bin -f #{options[:deploy_dir]}/#{File.basename(gem)}")
       install_result = DanarchyDeploy::Helpers.run_command(install_cmd, options)
 
-      if install_result[:stderr]
+      if install_result[:stderr] =~ /WARN/i
+        puts '   ! ' + install_result[:stderr]
+      elsif install_result[:stderr]
         abort('   ! Gem install failed!')
       else
         puts '   |+ Gem installed!'
@@ -155,39 +197,39 @@ module DanarchyDeploy
     end
 
     def self.gem_clean(connector, options)
-      clean_cmd = _ssh_command(connector, 'sudo gem clean danarchy_deploy 2&>/dev/null')
+      clean_cmd = _ssh_command(connector, 'sudo -i gem clean danarchy_deploy 2&>/dev/null')
       system(clean_cmd)
     end
 
     def self.push_templates(connector, options)
       template_dir = options[:deploy_dir] + '/templates'
       puts "\n > Pushing templates: #{template_dir}"
-      push_cmd = _rsync_push(connector, template_dir, template_dir)
+      push_cmd    = _rsync_push(connector, template_dir, template_dir)
       push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
       
       if push_result[:stderr]
         abort('   ! Templates push failed!')
       else
-        puts "   |+ Templates pushed to '#{options[:working_dir]}'!"
+        puts "   |+ Templates pushed to '#{template_dir}'!"
       end
     end
 
     def self.push_deployment(connector, options)
       puts "\n > Pushing deployment: #{options[:deploy_file]}"
-      push_cmd = _rsync_push(connector, options[:working_dir], options[:working_dir])
+      push_cmd    = _rsync_push(connector, @working_dir, @working_dir)
       push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
 
       if push_result[:stderr]
         abort('   ! Deployment push failed!')
       else
-        puts "   |+ Deployment pushed to '#{options[:working_dir]}'!"
+        puts "   |+ Deployment pushed to '#{@working_dir}'!"
       end
     end
 
     def self.remote_LocalDeploy(connector, gem_binary, options)
       puts "\n > Running LocalDeploy on #{connector[:hostname]}.\n\n"
 
-      deploy_cmd  = "sudo #{gem_binary} local "
+      deploy_cmd  = "sudo -i #{gem_binary} local "
       deploy_cmd += '--first-run '    if options[:first_run]
       deploy_cmd += '--ssh-verbose '  if options[:ssh_verbose]
       deploy_cmd += '--vars-verbose ' if options[:vars_verbose]
@@ -214,7 +256,7 @@ module DanarchyDeploy
 
     def self.remote_cleanup(connector, options)
       puts "\n > Cleaning up: #{options[:deploy_dir]}"
-      cleanup_cmd = _ssh_command(connector, "sudo rm -rfv #{options[:working_dir]}")
+      cleanup_cmd    = _ssh_command(connector, "sudo rm -rfv #{@working_dir}")
       cleanup_result = DanarchyDeploy::Helpers.run_command(cleanup_cmd, options)
 
       if cleanup_result[:stderr]
@@ -225,7 +267,7 @@ module DanarchyDeploy
     end
 
     def self._locate_gem_binary(connector, options)
-      locate_cmd = _ssh_command(connector, 'sudo which danarchy_deploy')
+      locate_cmd    = _ssh_command(connector, 'sudo -i which danarchy_deploy')
       locate_result = DanarchyDeploy::Helpers.run_command(locate_cmd, options)
 
       if locate_result[:stderr]

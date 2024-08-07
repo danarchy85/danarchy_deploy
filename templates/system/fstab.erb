@@ -1,0 +1,4 @@
+# DanarchyDeploy fstab
+<% @variables.each do |mount| -%>
+<%= "#{mount[:filesystem]}\t#{mount[:mountpoint]}\t#{mount[:type]}\t#{mount[:opts]}\t#{mount[:'dump/pass']}" %>
+<% end -%>

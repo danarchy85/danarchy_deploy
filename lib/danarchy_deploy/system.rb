@@ -3,7 +3,7 @@ require_relative 'system/debian'
 require_relative 'system/gentoo'
 require_relative 'system/opensuse'
 
-require_relative 'system/cryptsetup'
+# require_relative 'system/cryptsetup'
 require_relative 'system/fstab'
 
 module DanarchyDeploy
@@ -13,10 +13,11 @@ module DanarchyDeploy
       puts "\n" + self.name
 
       installer, updater, cleaner = prep_operating_system(deployment, options)
-      install_result = nil
+      install_result, updater_result = nil, nil
 
       puts "\n > Package Installation"
-      if deployment[:packages].any? && ['all', 'packages', nil].include?(deployment[:system][:update])
+      if [true, 'all', 'selected', nil].include?(deployment[:system][:update]) &&
+         deployment[:packages].any?
         packages = deployment[:packages].join(' ')
         puts "\n   - Installing packages..."
         install_result = DanarchyDeploy::Helpers.run_command("#{installer} #{packages}", options)
@@ -28,16 +29,19 @@ module DanarchyDeploy
       end
 
       puts "\n > #{deployment[:os].capitalize} System Updates"
-      if ['all', 'system', nil].include?(deployment[:system][:update])
+      if [true, 'all', 'system', nil].include?(deployment[:system][:update])
         puts "\n   - Running system updates..."
         updater_result = DanarchyDeploy::Helpers.run_command(updater, options)
         puts updater_result[:stdout] if updater_result[:stdout]
-        puts "\n   - Cleaning up unused packages..."
-        cleanup_result = DanarchyDeploy::Helpers.run_command(cleaner, options)
-        puts cleanup_result[:stdout] if cleanup_result[:stdout]
       else
         puts "\n   - Not running #{deployment[:os].capitalize} system updates."
         puts "       |_ Updates selected: #{deployment[:system][:update]}"
+      end
+
+      if install_result || updater_result
+        puts "\n   - Cleaning up unused packages..."
+        cleanup_result = DanarchyDeploy::Helpers.run_command(cleaner, options)
+        puts cleanup_result[:stdout] if cleanup_result[:stdout]
       end
 
       deployment
@@ -59,7 +63,8 @@ module DanarchyDeploy
           DanarchyDeploy::Templater.new(deployment[:system][:templates], options)
         end
 
-        DanarchyDeploy::System::Cryptsetup.new(deployment[:os], deployment[:system][:cryptsetup], options)
+        # Disabled due to Init changes; re-writing and splitting LVM/CryptSetup
+        # DanarchyDeploy::System::Cryptsetup.new(deployment[:os], deployment[:system][:cryptsetup], options)
 
         if deployment[:system][:fstab]
           DanarchyDeploy::System::Fstab.new(deployment[:os], deployment[:system][:fstab], options)

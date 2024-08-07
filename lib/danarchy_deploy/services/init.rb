@@ -10,42 +10,52 @@ module DanarchyDeploy
 
         deployment[:services].each do |service, params|
           next if ! params[:init]
-          orig_actions = params[:init]
-          puts "\n > Init actions for #{service}: #{params[:init].join(', ')}"
-          params[:init].each do |action|
-            puts "    |+ Taking action: #{action} on #{service}"
-            if options[:pretend]
-              puts "       Fake run: #{action} #{service}"
-            else
-              init_manager(deployment[:os], service, action, options)
-            end
+          if params[:init].class == Array
+            # one-time update for :init to new format
+            params[:init] =  if deployment[:os] == 'gentoo'
+                               { runlevel: 'default', actions: params[:init] }
+                             else
+                               { actions: params[:init] }
+                             end
           end
 
-          params[:init] = orig_actions
+          init_manager(deployment[:os], service, params[:init][:runlevel], options)
+          puts "\n > Init actions for #{service}: #{params[:init][:actions].join(', ')}"
+          params[:init][:actions].each do |action|
+            puts "    |> Taking action: #{action} on #{service}"
+            if options[:pretend]
+              puts "     |- Fake run: #{action} #{service}"
+            else
+              init_run(action)
+            end
+          end
         end
 
         deployment
       end
 
-      def self.init_manager(os, service, action, options)
-        init = if os == 'gentoo'
-                 DanarchyDeploy::Services::Init::Openrc.new(service, options)
-               else
-                 DanarchyDeploy::Services::Init::Systemd.new(service, options)
-               end
+      private
+      def self.init_manager(os, service, runlevel='default', options)
+        @init = if os == 'gentoo'
+                  DanarchyDeploy::Services::Init::Openrc.new(service, runlevel, options)
+                else
+                  DanarchyDeploy::Services::Init::Systemd.new(service, options)
+                end
+      end
 
-        init_result = init.send(action)
+      def self.init_run(action)
+        init_result = @init.send(action)
 
         if stderr = init_result[:stderr]
           if stderr.include?('unknown function')
-            puts "       ! Action: #{action} not available for service: #{service}.\n" +
+            puts "       ! Action: #{action} not available for service.\n" +
                  "          ! A restart may be needed! Otherwise, remove this action from the deployment.\n" +
                  "          ! Not taking any action here.\n"
           else
-            abort("       ! Action: #{action} #{service} failed!")
+            abort("       ! Action: #{action} failed!")
           end
         else
-          puts "       |+ Action: #{action} #{service} succeeded."
+          puts "       |+ Action: #{action} succeeded."
         end
       end
     end

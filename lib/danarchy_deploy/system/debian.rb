@@ -7,6 +7,7 @@ module DanarchyDeploy
         puts "\n" + self.name
         puts "#{deployment[:os].capitalize} detected! Using apt."
 
+        set_hostname(deployment[:hostname]) if !options[:pretend]
         if deployment[:apt]
           if deployment[:apt][:templates]
             puts "\nChecking Apt configs."
@@ -55,6 +56,11 @@ module DanarchyDeploy
             end
           end
         end
+      end
+
+      private
+      def set_hostname(hostname)
+        `hostnamectl hostname #{hostname}`
       end
     end
   end

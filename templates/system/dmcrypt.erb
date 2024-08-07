@@ -1,0 +1,17 @@
+# DanarchyDeploy dmcrypt
+# How long to wait for each timeout (in seconds).
+dmcrypt_key_timeout=1
+
+# Max number of checks to perform (see dmcrypt_key_timeout).
+#dmcrypt_max_timeout=300
+
+# Number of password retries.
+dmcrypt_retries=2
+
+<% @variables.each do |device, volume| -%>
+<%= "# Encrypted volume name|volgroup|device: #{device}" %>
+<% volume[:variables].each do |key, value| -%>
+<%= key -%>=<%= value %>
+<% end -%>
+<%# intentionally left blank %>
+<% end -%>

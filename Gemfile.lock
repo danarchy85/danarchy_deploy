@@ -1,26 +1,27 @@
 PATH
   remote: .
   specs:
-    danarchy_deploy (0.2.6)
+    danarchy_deploy (0.2.8)
       danarchy_couchdb (~> 0.1)
-      mongo (~> 2.17)
+      mongo (~> 2.20)
 
 GEM
   remote: https://rubygems.org/
   specs:
-    bson (4.14.1)
+    bson (5.0.1)
     danarchy_couchdb (0.1.3)
-    mongo (2.17.0)
-      bson (>= 4.8.2, < 5.0.0)
-    rake (13.0.6)
+    mongo (2.20.1)
+      bson (>= 4.14.1, < 6.0.0)
+    rake (13.2.1)
 
 PLATFORMS
+  ruby
   x86_64-linux
 
 DEPENDENCIES
-  bundler (~> 2.3)
+  bundler (~> 2.5)
   danarchy_deploy!
   rake (~> 13.0)
 
 BUNDLED WITH
-   2.3.9
+   2.5.11

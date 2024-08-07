@@ -1,0 +1,52 @@
+DROP DATABASE IF EXISTS test;
+
+<% @variables.each do |mysql| -%>
+<% if mysql[:action] == 'grant' -%>
+
+CREATE DATABASE IF NOT EXISTS `<%= mysql[:database] %>`;
+GRANT <%= mysql[:grants].join(', ') %>
+      ON `<%= mysql[:database] %>`.*
+      TO `<%= mysql[:user] %>`@`<%= mysql[:host] %>`
+      IDENTIFIED BY '<%= DanarchyDeploy::Helpers.decode_base64(mysql[:password]) %>';
+
+<% elsif mysql[:action] == 'revoke' -%>
+
+REVOKE <%= mysql[:grants].join(', ') %>
+      ON `<%= mysql[:database] %>`.*
+      FROM `<%= mysql[:user] %>`@`<%= mysql[:host] %>`;
+
+<% elsif mysql[:action] == 'drop' %>
+
+DROP DATABASE IF EXISTS <%= mysql[:database] %>;
+REVOKE ALL PRIVILEGES
+      ON `<%= mysql[:database] %>`.*
+      FROM `<%= mysql[:user] %>`@`<%= mysql[:host] %>`;
+DROP USER `<%= mysql[:user] %>`;
+
+<% elsif mysql[:action] == 'dropuser' %>
+
+DROP USER IF EXISTS `<%= mysql[:user] %>`@`<%= mysql[:host] %>`;
+
+<% end -%>
+
+# Cleanup user privileges without grants
+SET @keep_hosts = NULL;
+SELECT GROUP_CONCAT(Host) INTO @keep_hosts
+      FROM (
+      	   SELECT Host FROM mysql.db
+	   	  WHERE User = '<%= mysql[:user] %>'
+	   UNION
+	   SELECT Host FROM mysql.tables_priv
+	   	  WHERE User = '<%= mysql[:user] %>'
+	   ) AS T;
+
+SET @drop_users = SELECT GROUP_CONCAT('\'', user, '\'@\'', host, '\'') FROM mysql.user
+    WHERE User = '<%= mysql[:user] %>'
+    AND NOT FIND_IN_SET(Host, @keep_hosts);
+PREPARE stmt1 FROM @drop_users;
+EXECUTE stmt1;
+DEALLOCATE PREPARE stmt1;
+
+<% end -%>
+
+FLUSH PRIVILEGES;

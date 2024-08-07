@@ -1,0 +1,8 @@
+# DanarchyDeploy crontab
+SHELL=<%= @variables[:shell] || '/bin/bash' %>
+PATH=<%= @variables[:path] || '/bin:/usr/bin' %>
+BASH_ENV=<%= @variables[:env] || '~/.bashrc' %>
+
+<% @variables[:jobs].each do |job| -%>
+<%= "#{job[:schedule]}\t#{job[:command]}" %>
+<% end -%>

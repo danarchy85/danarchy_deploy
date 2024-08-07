@@ -1,0 +1,30 @@
+# Deployed by dAnarchy_deploy: /etc/portage/make.conf
+COMMON_FLAGS="-march=<%= `gcc -march=native -Q --help=target | grep march`.split[1] %> -O2 -pipe"
+CFLAGS="${COMMON_FLAGS}"
+CXXFLAGS="${COMMON_FLAGS}"
+FCFLAGS="${COMMON_FLAGS}"
+FFLAGS="${COMMON_FLAGS}"
+
+MAKEOPTS="-j<%= `nproc`.to_i * 2 + 1 %> -l<%= `nproc`.to_i %>"
+CPU_FLAGS_X86="<%= `cpuid2cpuflags`.split(': ').last.chomp %>"
+
+<% if !@variables -%>
+USE="bindist logrotate"
+INPUT_DEVICES="evdev keyboard"
+<% else -%>
+<%= @variables[:use] ? 'USE=' + "\"bindist logrotate #{@variables[:use]}\"\n" : "USE=\"bindist logrotate\"\n" -%>
+<%= @variables[:grub] ? 'GRUB_PLATFORMS=' + "\"#{@variables[:grub]}\"\n" : '' -%>
+<%= @variables[:ruby] ? 'RUBY_TARGETS=' + "\"#{@variables[:ruby]}\"\n" : '' -%>
+<%= @variables[:php] ? 'PHP_TARGETS=' + "\"#{@variables[:php]}\"\n" : '' -%>
+<%= @variables[:features] ? 'FEATURES=' + "\"#{@variables[:features]}\"\n" : '' -%>
+<%= @variables[:videocards] ? 'VIDEO_CARDS=' + "\"#{@variables[:videocards]}\"\n" : '' -%>
+<%= @variables[:input] ? 'INPUT_DEVICES=' + "\"#{@variables[:input]}\"\n" : "INPUT_DEVICES=\"evdev keyboard\"\n" -%>
+<% end -%>
+
+# This sets the language of build output to English.
+# Please keep this setting intact when reporting bugs.
+LC_MESSAGES=C
+
+PORTDIR="/var/db/repos/gentoo"
+DISTDIR="/var/cache/distfiles"
+PKGDIR="/var/cache/binpkgs"

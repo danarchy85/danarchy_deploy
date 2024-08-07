@@ -1,0 +1,14 @@
+# Deployed by dAnarchy_deploy: /etc/conf.d/distccd: config file for /etc/init.d/distccd
+
+# this is the distccd executable
+DISTCCD_EXEC="/usr/bin/distccd"
+
+# this is where distccd will store its pid file
+DISTCCD_PIDFILE="/var/run/distccd/distccd.pid"
+
+<%= @variables[:opts] ? 'DISTCCD_OPTS=' + "\"#{@variables[:opts]}\"" : 'DISTCCD_OPTS=""' %>
+<%= @variables[:port] ? 'DISTCCD_OPTS=' + "\"${DISTCCD_OPTS} --port #{@variables[:port]}\"" : 'DISTCCD_OPTS="${DISTCCD_OPTS} --port 3632"' %>
+<%= @variables[:loglevel] ? 'DISTCCD_OPTS=' + "\"${DISTCCD_OPTS} --log-level #{@variables[:loglevel]}\"" : 'DISTCCD_OPTS="${DISTCCD_OPTS} --log-level critical"' %>
+<%= @variables[:allow] ? 'DISTCCD_OPTS=' + "\"${DISTCCD_OPTS} --allow #{@variables[:allow]}\"" : '' %>
+<%= @variables[:listen] ? 'DISTCCD_OPTS=' + "\"${DISTCCD_OPTS} --listen #{@variables[:listen]}\"" : '' %>
+<%= @variables[:nice] ? 'DISTCCD_OPTS=' + "\"${DISTCCD_OPTS} -N #{@variables[:nice]}\"" : '' %>

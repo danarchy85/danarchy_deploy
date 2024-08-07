@@ -10,7 +10,6 @@ module DanarchyDeploy
       puts "\n" + self.name
 
       deployment[:services].each do |service, params|
-        next if service == :init
         puts "\nConfiguring service: #{service}"
 
         if params[:archives] && !params[:archives].empty?

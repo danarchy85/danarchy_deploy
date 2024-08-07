@@ -1,0 +1,2 @@
+GRANT ALL PRIVILEGES ON `<%= @variables[:db_name] %>`.`*` TO `<%= @variables[:db_user] %>`@`<%= @variables[:db_host] %>` IDENTIFIED BY `<%= @variables[:db_pass] %>`;
+FLUSH PRIVILEGES;

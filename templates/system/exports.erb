@@ -1,0 +1,4 @@
+# DanarchyDeploy NFS exports
+<% @variables.each do |export| -%>
+<%= "#{export[:filesystem]}\t#{export[:clients]}(#{export[:options]})" %>
+<% end -%>
