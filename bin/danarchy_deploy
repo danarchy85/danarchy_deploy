@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 require_relative '../lib/danarchy_deploy'
 require 'danarchy_couchdb'
-require 'date'
 require 'optparse'
 
 deployment = nil
