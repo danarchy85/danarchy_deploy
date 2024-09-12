@@ -1,3 +1,6 @@
+patch_0.2.10
+- fix set_hostname in debian, centos, opensuse
+
 patch_0.2.9
 - cleanup emerge --sync output
 - change Date to Time
