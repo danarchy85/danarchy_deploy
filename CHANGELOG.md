@@ -1,3 +1,9 @@
+patch_0.2.9
+- cleanup emerge --sync output
+- change Date to Time
+- fix hostnamectl set-hostname
+- Fstab: skip formatting NFS mountpoints
+
 patch_0.2.8
 - Switch support from RVM to ASDF
 - users.rb: use Templater to handle authorized_users and sudoers
