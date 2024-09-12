@@ -60,7 +60,7 @@ module DanarchyDeploy
 
       private
       def set_hostname(hostname)
-        `hostnamectl hostname #{hostname}`
+        `hostnamectl set-hostname #{hostname}`
       end
     end
   end
