@@ -10,7 +10,7 @@ module DanarchyDeploy
 
         tmparchive = false
         if !archive[:source] && archive[:data]
-          archive[:source] = options[:deploy_dir] + "/.tmp_archive_#{DateTime.now.strftime("%Y%m%d_%H%M%S")}"
+          archive[:source] = options[:deploy_dir] + "/.tmp_archive_#{Time.now.strftime("%Y%m%d_%H%M%S")}"
           tmparchive = true
           data = DanarchyDeploy::Helpers.decode_base64(archive[:data])
           write_tmp_archive(archive[:source], data)

@@ -39,11 +39,7 @@ module DanarchyDeploy
         puts "\n > Formatting mountpoints"
 
         fstab[:mounts].each do |mount|
-          fs_check = DanarchyDeploy::Helpers.run_command(
-            "file -sL #{mount[:filesystem]}", options
-          )
-
-          if fs_check[:stdout] && fs_check[:stdout] =~ /.*data$/
+          if fs_check(mount, options) == true
             puts "\n   > Formatting #{mount[:filesystem]}"
             mkfs = DanarchyDeploy::Helpers.run_command(
               "mkfs -t #{mount[:type]} #{mount[:filesystem]}", options
@@ -53,6 +49,20 @@ module DanarchyDeploy
 
           FileUtils.mkdir_p(mount[:mountpoint]) if !options[:pretend] &&
                                                    !Dir.exist?(mount[:mountpoint])
+        end
+      end
+
+      def self.fs_check(mount, options)
+        return false if mount[:type] =~ /^nfs/
+
+        fs_check = DanarchyDeploy::Helpers.run_command(
+          "file -sL #{mount[:filesystem]}", options
+        )
+
+        if fs_check[:stdout] && fs_check[:stdout] =~ /.*data$/
+          return true
+        else
+          return false
         end
       end
     end

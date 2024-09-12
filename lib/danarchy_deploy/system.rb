@@ -25,7 +25,7 @@ module DanarchyDeploy
       else
         puts "\n   - Not installing packages."
         puts "       |_ Packages selected: #{deployment[:packages].count}"
-        puts "       |_ Updates  selected: #{deployment[:system][:update]}"
+        puts "       |_ Install/Update: #{deployment[:system][:update]}"
       end
 
       puts "\n > #{deployment[:os].capitalize} System Updates"
@@ -35,7 +35,7 @@ module DanarchyDeploy
         puts updater_result[:stdout] if updater_result[:stdout]
       else
         puts "\n   - Not running #{deployment[:os].capitalize} system updates."
-        puts "       |_ Updates selected: #{deployment[:system][:update]}"
+        puts "       |_ Install/Update: #{deployment[:system][:update]}"
       end
 
       if install_result || updater_result

@@ -49,18 +49,19 @@ module DanarchyDeploy
       end
 
       def self.emerge_sync(sync, options)
+        puts "\n >  Gentoo Emerge Sync"
         if sync.nil?
-          install_cron_template(sync, options)
+          install_sync_cron(sync, options)
         elsif sync == false
-          puts "\nNot running emerge sync; set to: #{sync}"
-          install_cron_template(sync, options)
+          puts "\n   - Not running emerge sync; set to: #{sync}"
+          install_sync_cron(sync, options)
         elsif sync == true
           File.delete('/var/spool/cron/crontabs/portage') if File.exist?('/var/spool/cron/crontabs/portage')
           DanarchyDeploy::Helpers.run_command('emerge --sync &>/var/log/emerge-sync.log', options)
         elsif sync =~ /([0-9]{1,2}|\*|\@[a-z]{4,7})/i
-          install_cron_template(sync, options)
+          install_sync_cron(sync, options)
         else
-          puts "\nUnknown sync cron time: #{sync}. Not running emerge sync!"
+          puts "\n   ! Unknown sync cron time: #{sync}. Not running emerge sync!"
         end
       end
 
@@ -73,7 +74,7 @@ module DanarchyDeploy
         end
       end
 
-      def self.install_cron_template(sync, options)
+      def self.install_sync_cron(sync, options)
         templates = if sync.nil? || sync == false
                       [
                         {

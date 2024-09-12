@@ -9,6 +9,7 @@ module DanarchyDeploy
   require_relative 'danarchy_deploy/templater'
   require_relative 'danarchy_deploy/users'
   require_relative 'danarchy_deploy/version'
+  require 'time'
 
   class LocalDeploy
     def self.new(deployment, options)
@@ -26,7 +27,7 @@ module DanarchyDeploy
       deployment = DanarchyDeploy::Users.new(deployment, options)
       deployment = DanarchyDeploy::Services::Init.new(deployment, options)
 
-      deployment[:last_deploy] = DateTime.now.strftime("%Y/%m/%d %H:%M:%S")
+      deployment[:last_deploy] = Time.now.strftime("%Y/%m/%d %H:%M:%S")
       puts "\nFinished Local Deployment at #{deployment[:last_deploy]}!"
 
       if options[:deploy_file].end_with?('.json')
