@@ -1,5 +1,5 @@
 patch_0.2.11
-
+- restructure bin/exe dirs, update gemspec
 
 patch_0.2.10
 - fix set_hostname in debian, centos, opensuse
