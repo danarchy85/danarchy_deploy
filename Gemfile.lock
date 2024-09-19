@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    danarchy_deploy (0.2.8)
+    danarchy_deploy (0.2.11)
       danarchy_couchdb (~> 0.1)
       mongo (~> 2.20)
 
@@ -10,7 +10,7 @@ GEM
   specs:
     bson (5.0.1)
     danarchy_couchdb (0.1.3)
-    mongo (2.20.1)
+    mongo (2.21.0)
       bson (>= 4.14.1, < 6.0.0)
     rake (13.2.1)
 
