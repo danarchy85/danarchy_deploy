@@ -37,8 +37,8 @@ module DanarchyDeploy
 
       private
       def self.emerge_sync_in_progress
-        repo_path = `emerge --info | grep location`.chomp.split(': ').last
-        Dir.exist?(repo_path + '/.tmp-unverified-download-quarantine')
+        @repo_path = `emerge --info | grep location`.chomp.split(': ').last
+        Dir.exist?(@repo_path + '/.tmp-unverified-download-quarantine')
       end
 
       def self.emerge_sync_wait
@@ -57,7 +57,14 @@ module DanarchyDeploy
           install_sync_cron(sync, options)
         elsif sync == true
           File.delete('/var/spool/cron/crontabs/portage') if File.exist?('/var/spool/cron/crontabs/portage')
-          DanarchyDeploy::Helpers.run_command('emerge --sync &>/var/log/emerge-sync.log', options)
+          begin
+            DanarchyDeploy::Helpers.run_command('emerge --sync &>/var/log/emerge-sync.log', options)
+          ensure
+            if Dir.exist?("#{@repo_path}/.tmp-unverified-download-quarantine")
+              puts "\n    ! emerge --sync may have failed: cleaning up tmp path."
+              DanarchyDeploy::Helpers.run_command("rm -rf #{@repo_path}/.tmp-unverified-download-quarantine", options)
+            end
+          end
         elsif sync =~ /([0-9]{1,2}|\*|\@[a-z]{4,7})/i
           install_sync_cron(sync, options)
         else
