@@ -1,4 +1,5 @@
 patch_0.2.11
+- gentoo: fix portage cron permissions
 - restructure bin/exe dirs, update gemspec
 - cleanup emerge --sync tmpdir on failure
 
