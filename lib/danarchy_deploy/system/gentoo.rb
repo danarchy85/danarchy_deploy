@@ -37,8 +37,8 @@ module DanarchyDeploy
 
       private
       def self.emerge_sync_in_progress
-        repo_path = `emerge --info | grep location`.chomp.split(': ').last
-        Dir.exist?(repo_path + '/.tmp-unverified-download-quarantine')
+        @repo_path = `emerge --info | grep location`.chomp.split(': ').last
+        Dir.exist?(@repo_path + '/.tmp-unverified-download-quarantine')
       end
 
       def self.emerge_sync_wait
@@ -57,7 +57,14 @@ module DanarchyDeploy
           install_sync_cron(sync, options)
         elsif sync == true
           File.delete('/var/spool/cron/crontabs/portage') if File.exist?('/var/spool/cron/crontabs/portage')
-          DanarchyDeploy::Helpers.run_command('emerge --sync &>/var/log/emerge-sync.log', options)
+          begin
+            DanarchyDeploy::Helpers.run_command('emerge --sync &>/var/log/emerge-sync.log', options)
+          ensure
+            if Dir.exist?("#{@repo_path}/.tmp-unverified-download-quarantine")
+              puts "\n    ! emerge --sync may have failed: cleaning up tmp path."
+              DanarchyDeploy::Helpers.run_command("rm -rf #{@repo_path}/.tmp-unverified-download-quarantine", options)
+            end
+          end
         elsif sync =~ /([0-9]{1,2}|\*|\@[a-z]{4,7})/i
           install_sync_cron(sync, options)
         else
@@ -75,50 +82,48 @@ module DanarchyDeploy
       end
 
       def self.install_sync_cron(sync, options)
-        templates = if sync.nil? || sync == false
-                      [
-                        {
-                          target: '/var/spool/cron/crontabs/portage',
-                          remove: true
-                        }
-                      ]
-                    else
-                      [
-                        {
-                          source: 'builtin::system/crontab.erb',
-                          target: '/var/spool/cron/crontabs/portage',
-                          dir_perms: {
-                            owner: 'root',
-                            group: 'crontab',
-                            mode: '1730'
-                          },
-                          file_perms: {
-                            owner: 'portage',
-                            group: 'crontab',
-                            mode: '0600'
-                          },
-                          variables: {
-                            shell: '/bin/bash',
-                            path: '/usr/local/sbin:/usr/local/bin:/usr/bin',
-                            env: '',
-                            jobs: [
-                              {
-                                schedule: sync,
-                                command: 'emerge --sync &>/var/log/emerge-sync.log'
-                              },
-                              {
-                                schedule: '@daily',
-                                command: 'eclean-dist &>/dev/null'
-                              },
-                              {
-                                schedule: '@daily',
-                                command: 'eclean-pkg &>/dev/null'
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    end
+        templates = Array.new
+        if sync.nil? || sync == false
+          DanarchyDeploy::Helpers.run_command(
+            'id portage | grep cron >/dev/null && usermod -r -G cron portage',
+            options)
+
+          templates.push({ target: '/var/spool/cron/crontabs/portage',
+                           remove: true })
+        else
+          DanarchyDeploy::Helpers.run_command(
+            'id portage | grep cron >/dev/null || usermod -a -G cron portage',
+            options)
+
+          # User must be a member of the 'cron' group.
+          # User's actual crontab file is chown'd as ${user}:crontab
+          templates.push({ source: 'builtin::system/crontab.erb',
+                           target: '/var/spool/cron/crontabs/portage',
+                           file_perms: {
+                             owner: 'portage',
+                             group: 'crontab',
+                             mode: '0600'
+                           },
+                           variables: {
+                             shell: '/bin/bash',
+                             path: '/usr/local/sbin:/usr/local/bin:/usr/bin',
+                             env: '',
+                             jobs: [
+                               {
+                                 schedule: sync,
+                                 command: 'emerge --sync &>/var/log/emerge-sync.log'
+                               },
+                               {
+                                 schedule: '@daily',
+                                 command: 'eclean-dist &>/dev/null'
+                               },
+                               {
+                                 schedule: '@daily',
+                                 command: 'eclean-pkg &>/dev/null'
+                               }
+                             ]
+                           } })
+        end
 
         DanarchyDeploy::Templater.new(templates, options)
       end
