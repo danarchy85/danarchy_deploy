@@ -15,6 +15,11 @@ module DanarchyDeploy
       installer, updater, cleaner = prep_operating_system(deployment, options)
       install_result, updater_result = nil, nil
 
+      if options[:skip_install]
+        puts "\n > Skipping package installation due to --skip-install"
+        return deployment
+      end
+
       puts "\n > Package Installation"
       if [true, 'all', 'selected', nil].include?(deployment[:system][:update]) &&
          deployment[:packages].any?
@@ -86,24 +91,6 @@ module DanarchyDeploy
       end
 
       [installer, updater, cleaner]
-    end
-
-    def self.fstab_mount(deployment, options)
-      fstab = deployment[:system][:templates].collect { |t| t if t[:target] == '/etc/fstab' }.compact
-      fstab.each do |t|
-        t[:variables].each do |v|
-          if !Dir.exist?(v[:mountpoint])
-            puts "Creating mountpoint: #{v[:mountpoint]}"
-            FileUtils.mkdir_p(v[:mountpoint]) if !options[:pretend]
-          end
-        end
-      end
-
-      puts "\n > Mounting Filesystems"
-      if !options[:pretend]
-        mount_result = DanarchyDeploy::Helpers.run_command('mount -a', options)
-        abort('   |! Failed to mount filesystems!') if mount_result[:stderr]
-      end
     end
   end
 end

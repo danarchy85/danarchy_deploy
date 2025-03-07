@@ -3,10 +3,11 @@ module DanarchyDeploy
   module Services
     class Init
       class Openrc
-        def initialize(service, runlevel, options)
+        def initialize(service, runlevel='default', options)
           @service  = service
           @runlevel = runlevel
           @options  = options
+          cleanup_runlevels
         end
 
         def status
@@ -64,10 +65,19 @@ module DanarchyDeploy
         end
 
         def disable
-          Dir["/etc/runlevels/*/#{@service}"].each do |svc|
-            runlevel, service = svc.split('/')[3,4]
-            cmd = "rc-update del #{service} #{runlevel}"
-            DanarchyDeploy::Helpers.run_command(cmd, @options)
+          cmd = "rc-update del #{@service} #{runlevel}"
+          DanarchyDeploy::Helpers.run_command(cmd, @options)
+        end
+
+        private
+        def cleanup_runlevels
+          Dir["/etc/runlevels/*/#{@service}"].each do |dir|
+            runlevel = File.basename(File.dirname(dir))
+            if runlevel != @runlevel
+              puts "    |> Removing #{@service} from wrong runlevel: #{runlevel}"
+              cmd = "rc-update del #{@service} #{runlevel}"
+              DanarchyDeploy::Helpers.run_command(cmd, @options)
+            end
           end
         end
       end

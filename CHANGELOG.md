@@ -1,3 +1,9 @@
+patch_0.2.12
+- Rename bin/console
+- Change emerge --sync cron to /etc/cron.daily/
+- Init::OpenRC: cleanup service in wrong runlevels
+- add skip_install option
+
 patch_0.2.11
 - gentoo: fix portage cron permissions
 - restructure bin/exe dirs, update gemspec

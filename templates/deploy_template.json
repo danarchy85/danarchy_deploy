@@ -24,7 +24,7 @@
     }
   },
   "portage": {
-    "sync": false,
+    "sync": false || false || "cron || schedule",
     "templates": [
       {
         "target": "/etc/portage/make.conf",
@@ -70,9 +70,10 @@
   "services": {
     "service_name": {
       "init": {
-        "service": [
+        "runlevel": "default",
+        "actions": [
           "enable",
-          "restart"
+          "start"
         ]
       },
       "archives": [
