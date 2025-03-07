@@ -88,41 +88,21 @@ module DanarchyDeploy
             'id portage | grep cron >/dev/null && usermod -r -G cron portage',
             options)
 
-          templates.push({ target: '/var/spool/cron/crontabs/portage',
+          templates.push({ target: '/etc/cron.daily/portage_sync.sh',
                            remove: true })
         else
           DanarchyDeploy::Helpers.run_command(
             'id portage | grep cron >/dev/null || usermod -a -G cron portage',
             options)
 
-          # User must be a member of the 'cron' group.
-          # User's actual crontab file is chown'd as ${user}:crontab
-          templates.push({ source: 'builtin::system/crontab.erb',
-                           target: '/var/spool/cron/crontabs/portage',
+          templates.push({ source: 'builtin::portage/portage_sync.sh',
+                           target: '/etc/cron.daily/portage_sync.sh',
                            file_perms: {
-                             owner: 'portage',
-                             group: 'crontab',
-                             mode: '0600'
-                           },
-                           variables: {
-                             shell: '/bin/bash',
-                             path: '/usr/local/sbin:/usr/local/bin:/usr/bin',
-                             env: '',
-                             jobs: [
-                               {
-                                 schedule: sync,
-                                 command: 'emerge --sync &>/var/log/emerge-sync.log'
-                               },
-                               {
-                                 schedule: '@daily',
-                                 command: 'eclean-dist &>/dev/null'
-                               },
-                               {
-                                 schedule: '@daily',
-                                 command: 'eclean-pkg &>/dev/null'
-                               }
-                             ]
-                           } })
+                             owner: 'root',
+                             group: 'root',
+                             mode: '0740'
+                           }
+                         })
         end
 
         DanarchyDeploy::Templater.new(templates, options)
