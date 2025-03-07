@@ -4,13 +4,16 @@ require 'danarchy_couchdb'
 require 'optparse'
 
 deployment = nil
-options = { couchdb: "#{ENV['HOME']}/.danarchy/danarchy_deploy/danarchy_couchdb.json",
-            deploy_dir: '/danarchy/deploy',
-            deploy_file: nil,
-            first_run: false,
-            pretend: false,
-            ssh_verbose: false,
-            vars_verbose: false }
+options = {
+  couchdb: "#{ENV['HOME']}/.danarchy/danarchy_deploy/danarchy_couchdb.json",
+  deploy_dir: '/danarchy/deploy',
+  deploy_file: nil,
+  first_run: false,
+  pretend: false,
+  ssh_verbose: false,
+  vars_verbose: false,
+  skip_install: true
+}
 
 ARGV.push('--help') if ARGV.empty?
 optparse = OptionParser.new do |opts|
@@ -51,6 +54,10 @@ optparse = OptionParser.new do |opts|
 
   opts.on('--vars-verbose', "Verbose template variables and diff output.") do |val|
     options[:vars_verbose] = true
+  end
+
+  opts.on('--skip-install', "Skip package installation and updates.") do |val|
+    options[:skip_install] = true
   end
 
   opts.on('--version', "Print #{$PROGRAM_NAME} version.") do |val|

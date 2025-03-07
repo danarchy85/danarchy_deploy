@@ -47,8 +47,8 @@ module DanarchyDeploy
             abort("    ! Failed to run mkfs: #{mkfs[:stderr]}") if mkfs[:stderr]
           end
 
-          FileUtils.mkdir_p(mount[:mountpoint]) if !options[:pretend] &&
-                                                   !Dir.exist?(mount[:mountpoint])
+          FileUtils.mkdir_p(mount[:mountpoint]) unless options[:pretend] &&
+                                                       Dir.exist?(mount[:mountpoint])
         end
       end
 
