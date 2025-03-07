@@ -48,7 +48,7 @@ module DanarchyDeploy
         puts "     |> Continuing with emerge!"
       end
 
-      def self.emerge_sync(sync, options)
+      def self.emerge_sync(sync=false, options)
         puts "\n >  Gentoo Emerge Sync"
         if sync.nil?
           install_sync_cron(sync, options)
@@ -65,7 +65,7 @@ module DanarchyDeploy
               DanarchyDeploy::Helpers.run_command("rm -rf #{@repo_path}/.tmp-unverified-download-quarantine", options)
             end
           end
-        elsif sync =~ /([0-9]{1,2}|\*|\@[a-z]{4,7})/i
+        elsif sync =~ /(cron|schedule)/i
           install_sync_cron(sync, options)
         else
           puts "\n   ! Unknown sync cron time: #{sync}. Not running emerge sync!"

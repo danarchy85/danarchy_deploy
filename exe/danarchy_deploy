@@ -12,7 +12,7 @@ options = {
   pretend: false,
   ssh_verbose: false,
   vars_verbose: false,
-  skip_install: true
+  skip_install: false
 }
 
 ARGV.push('--help') if ARGV.empty?
@@ -108,7 +108,7 @@ elsif location == 'local'
     puts ' ! Ctrl-c out if this is not what you want to do!'
     10.downto(0) do |i|
       trap('SIGINT') { abort("\nExiting!") }
-      print "\rDeploying in #{i} seconds"
+      print "\rDeploying in #{i} seconds. "
       sleep(1)
     end
 

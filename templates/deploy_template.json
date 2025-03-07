@@ -24,7 +24,7 @@
     }
   },
   "portage": {
-    "sync": false,
+    "sync": false || false || "cron || schedule",
     "templates": [
       {
         "target": "/etc/portage/make.conf",
