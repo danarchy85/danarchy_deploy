@@ -40,7 +40,7 @@ Usage: sudo bin/danarchy_deploy (local|remote) --json /path/to/deployment.json [
 	--dev-gem    			 Build dAnarchy_deploy gem locally and push to target host in RemoteDeploy.
 	--ssh-verbose                	 Verbose SSH stdout/stderr output.
 	--vars-verbose                	 Verbose template variable output.
-    --skip-install                   Skip package installation and updates.
+	--skip-install                   Skip package installation and updates.
 	--version                    	 Print bin/danarchy_deploy version.
 	-h, --help                       Print this help info.
 ```
