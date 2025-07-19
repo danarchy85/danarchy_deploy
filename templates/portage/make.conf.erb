@@ -5,20 +5,19 @@ CXXFLAGS="${COMMON_FLAGS}"
 FCFLAGS="${COMMON_FLAGS}"
 FFLAGS="${COMMON_FLAGS}"
 
-MAKEOPTS="-j<%= `nproc`.to_i * 2 + 1 %> -l<%= `nproc`.to_i %>"
+MAKEOPTS="-j<%= @variables[:MAKEOPTS_J] ? @variables[:MAKEOPTS_J] : `nproc`.to_i + 1 %> -l<%= (`nproc`.to_f * 0.85) %>"
 CPU_FLAGS_X86="<%= `cpuid2cpuflags`.split(': ').last.chomp %>"
 
-<% if !@variables -%>
-USE="bindist logrotate"
-INPUT_DEVICES="evdev keyboard"
-<% else -%>
-<%= @variables[:use] ? 'USE=' + "\"bindist logrotate #{@variables[:use]}\"\n" : "USE=\"bindist logrotate\"\n" -%>
-<%= @variables[:grub] ? 'GRUB_PLATFORMS=' + "\"#{@variables[:grub]}\"\n" : '' -%>
-<%= @variables[:ruby] ? 'RUBY_TARGETS=' + "\"#{@variables[:ruby]}\"\n" : '' -%>
-<%= @variables[:php] ? 'PHP_TARGETS=' + "\"#{@variables[:php]}\"\n" : '' -%>
-<%= @variables[:features] ? 'FEATURES=' + "\"#{@variables[:features]}\"\n" : '' -%>
-<%= @variables[:videocards] ? 'VIDEO_CARDS=' + "\"#{@variables[:videocards]}\"\n" : '' -%>
-<%= @variables[:input] ? 'INPUT_DEVICES=' + "\"#{@variables[:input]}\"\n" : "INPUT_DEVICES=\"evdev keyboard\"\n" -%>
+<%
+defaults = {
+  :USE => "bindist logrotate",
+  :INPUT_DEVICES => "evdev keyboard"
+}
+
+variables = defaults.merge(@variables) if @variables.any?
+
+variables.each do |k, v| -%>
+<%= k.to_s + "=\"#{v}\"" %>
 <% end -%>
 
 # This sets the language of build output to English.

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    danarchy_deploy (0.2.12)
+    danarchy_deploy (0.2.13)
       danarchy_couchdb (~> 0.1)
       mongo (~> 2.20)
       openssl (~> 3.3)
