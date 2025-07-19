@@ -65,7 +65,7 @@ module DanarchyDeploy
         end
 
         def disable
-          cmd = "rc-update del #{@service} #{runlevel}"
+          cmd = "rc-update del #{@service} #{@runlevel}"
           DanarchyDeploy::Helpers.run_command(cmd, @options)
         end
 
