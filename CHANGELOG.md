@@ -1,3 +1,10 @@
+patch_0.2.13
+- Pid class to return LocalDeploy if already running
+- remote_LocalDeploy parse options dynamically
+- portage_sync: log eclean output
+- fix @runlevel in init/openrc.rb
+- update builtin::portage/make.conf.erb with variable parsing
+
 patch_0.2.12
 - Rename bin/console
 - Change emerge --sync cron to /etc/cron.daily/
