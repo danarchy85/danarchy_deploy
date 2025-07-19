@@ -4,6 +4,7 @@ module DanarchyDeploy
   require_relative 'danarchy_deploy/groups'
   require_relative 'danarchy_deploy/hash_deep_merge'
   require_relative 'danarchy_deploy/helpers'
+  require_relative 'danarchy_deploy/pid'
   require_relative 'danarchy_deploy/services'
   require_relative 'danarchy_deploy/system'
   require_relative 'danarchy_deploy/templater'
@@ -14,8 +15,15 @@ module DanarchyDeploy
   class LocalDeploy
     def self.new(deployment, options)
       puts "\n" + self.name
+
+      pid = Pid.new
+      puts pid.message
+      if pid.locked
+        return deployment
+      end
+
       puts "Pretend run! Not making any changes." if options[:pretend]
-        
+
       puts 'Begining Deployment:'
       printf("%12s %0s\n", 'Hostname:', deployment[:hostname])
       printf("%12s %0s\n", 'OS:', deployment[:os])
@@ -36,6 +44,8 @@ module DanarchyDeploy
         File.write(options[:deploy_file], deployment.to_yaml)
       end
 
+      pid.cleanup
+      puts pid.message
       deployment
     end
   end
@@ -159,7 +169,7 @@ module DanarchyDeploy
       gem_dir = File.expand_path('../../', __FILE__)
 
       abort('ERROR: Need to be in development gem directory for --dev-gem!') if Dir.pwd != gem_dir
-      
+
       gem_path = "#{gem_dir}/pkg/#{gem}"
       build_cmd = "cd #{gem_dir} && git add . && rake build"
       build_result = DanarchyDeploy::Helpers.run_command(build_cmd, options)
@@ -183,7 +193,7 @@ module DanarchyDeploy
       else
         puts '   |+ Gem pushed!'
       end
-      
+
       puts "\n > Installing gem: #{gem} on #{connector[:hostname]}"
       install_cmd    = _ssh_command(connector, "sudo -i gem install --bindir /usr/local/bin -f #{options[:deploy_dir]}/#{File.basename(gem)}")
       install_result = DanarchyDeploy::Helpers.run_command(install_cmd, options)
@@ -204,14 +214,16 @@ module DanarchyDeploy
 
     def self.push_templates(connector, options)
       template_dir = options[:deploy_dir] + '/templates'
-      puts "\n > Pushing templates: #{template_dir}"
-      push_cmd    = _rsync_push(connector, template_dir, template_dir)
-      push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
-      
-      if push_result[:stderr]
-        abort('   ! Templates push failed!')
-      else
-        puts "   |+ Templates pushed to '#{template_dir}'!"
+      if Dir.exist?(template_dir)
+        puts "\n > Pushing templates: #{template_dir}"
+        push_cmd    = _rsync_push(connector, template_dir, template_dir)
+        push_result = DanarchyDeploy::Helpers.run_command(push_cmd, options)
+
+        if push_result[:stderr]
+          abort('   ! Templates push failed!')
+        else
+          puts "   |+ Templates pushed to '#{template_dir}'!"
+        end
       end
     end
 
@@ -231,15 +243,23 @@ module DanarchyDeploy
       puts "\n > Running LocalDeploy on #{connector[:hostname]}.\n\n"
 
       deploy_cmd  = "sudo -i #{gem_binary} local "
-      deploy_cmd += '--first-run '    if options[:first_run]
-      deploy_cmd += '--ssh-verbose '  if options[:ssh_verbose]
-      deploy_cmd += '--vars-verbose ' if options[:vars_verbose]
-      deploy_cmd += '--pretend '      if options[:pretend]
-      deploy_cmd += '--json '         if options[:deploy_file].end_with?('.json')
-      deploy_cmd += '--yaml '         if options[:deploy_file].end_with?('.yaml')
-      deploy_cmd += options[:deploy_file]
+      opts = Array.new
+      options.each do |k,v|
+        next if [:couchdb, :dev_gem, :deploy_dir].include?(k)
+        if k == :deploy_file
+          if v.end_with?('.json')
+            opts.insert(-1, '--json ' + v)
+          elsif v.end_with?('.yaml')
+            opts.insert(-1, '--yaml ' + v)
+          else
+            abort("   ! Unknown deploy_file type: #{v}")
+          end
+        elsif v == true
+          opts.insert(0, '--' + k.to_s.gsub('_', '-'))
+        end
+      end
 
-      deploy_command = _ssh_command(connector, deploy_cmd)
+      deploy_command = _ssh_command(connector, deploy_cmd + opts.join(' '))
       system(deploy_command)
     end
 
@@ -247,7 +267,7 @@ module DanarchyDeploy
       puts "\n > Pulling deployment: #{options[:deploy_file]}"
       pull_cmd = _scp_pull(connector, options[:deploy_file], options[:deploy_file])
       pull_result = DanarchyDeploy::Helpers.run_command(pull_cmd, options)
-      
+
       if pull_result[:stderr]
         abort('   ! Deployment pull failed!')
       else
