@@ -4,10 +4,13 @@ DROP DATABASE IF EXISTS test;
 <% if mysql[:action] == 'grant' -%>
 
 CREATE DATABASE IF NOT EXISTS `<%= mysql[:database] %>`;
+
+CREATE USER IF NOT EXISTS `<%= mysql[:user] %>`@`<%= mysql[:host] %>`
+      IDENTIFIED BY '<%= DanarchyDeploy::Helpers.decode_base64(mysql[:password]) %>';
+
 GRANT <%= mysql[:grants].join(', ') %>
       ON `<%= mysql[:database] %>`.*
-      TO `<%= mysql[:user] %>`@`<%= mysql[:host] %>`
-      IDENTIFIED BY '<%= DanarchyDeploy::Helpers.decode_base64(mysql[:password]) %>';
+      TO `<%= mysql[:user] %>`@`<%= mysql[:host] %>`;
 
 <% elsif mysql[:action] == 'revoke' -%>
 
