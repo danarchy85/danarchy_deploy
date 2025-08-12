@@ -5,8 +5,19 @@ DROP DATABASE IF EXISTS test;
 
 CREATE DATABASE IF NOT EXISTS `<%= mysql[:database] %>`;
 
-CREATE USER IF NOT EXISTS `<%= mysql[:user] %>`@`<%= mysql[:host] %>`
-      IDENTIFIED BY '<%= DanarchyDeploy::Helpers.decode_base64(mysql[:password]) %>';
+CREATE USER IF NOT EXISTS `<%= mysql[:user] %>`@`<%= mysql[:host] %>`;
+
+SET @update_query = (
+    SELECT IF(password != PASSWORD('<%= DanarchyDeploy::Helpers.decode_base64(mysql[:password]) %>'),
+    "ALTER USER `<%= mysql[:user] %>`@`<%= mysql[:host] %>`
+           IDENTIFIED BY 'ccf5630dc2d2c5df79ca80459cded'",
+    "SELECT 1"
+    ) AS update_passwd FROM mysql.user
+    WHERE user = '<%= mysql[:user] %>'
+    AND host = '<%= mysql[:host] %>');
+
+PREPARE STMT FROM @update_query;
+EXECUTE STMT;
 
 GRANT <%= mysql[:grants].join(', ') %>
       ON `<%= mysql[:database] %>`.*

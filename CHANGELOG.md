@@ -1,3 +1,7 @@
+patch_0.2.14
+- Fix MySQL user_grants.sql.erb CREATE USER
+- Make MySQL user_grants.sql.erb update passwords
+
 patch_0.2.13
 - Pid class to return LocalDeploy if already running
 - remote_LocalDeploy parse options dynamically
