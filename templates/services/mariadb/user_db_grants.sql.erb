@@ -1,0 +1,80 @@
+DELIMITER //
+CREATE PROCEDURE mysql.dropHostsForUser(IN u char(128), IN h char(225), OUT user_host char(255))
+BEGIN
+    DECLARE done int DEFAULT FALSE;
+    DECLARE drop_host CHAR(255);
+    DECLARE drop_hosts CURSOR FOR SELECT DISTINCT(CONCAT('`', user, '`@`', host, '`')) AS host FROM mysql.user WHERE user = u AND host NOT IN (h);
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    OPEN drop_hosts;
+    DROPHOSTS: LOOP
+        FETCH drop_hosts INTO drop_host;
+
+        IF done = FALSE THEN
+           SET @drop_stmt = (
+               SELECT CONCAT('DROP USER IF EXISTS ', drop_host)
+           );
+           PREPARE STMT FROM @drop_stmt;
+           EXECUTE STMT;
+           ITERATE DROPHOSTS;
+        END IF;
+        LEAVE DROPHOSTS;
+    END LOOP DROPHOSTS;
+    CLOSE drop_hosts;
+END //
+DELIMITER ;
+
+<% @variables.each do |user, params| -%>
+<%= "/* Cleaning up hosts not granted for user: #{user} */" -%>
+
+<% hosts = "'#{params[:databases].values.collect { |dbs| dbs[:host] }.join("', '")}'" -%>
+CALL mysql.dropHostsForUser('<%= user %>', "<%= hosts %>", @user_host);
+
+<% params[:databases].each do |dbname, db| -%>
+
+<% if db[:action] == 'dropuser' -%>
+<%= "/* Dropping user #{user} */" %>
+DROP USER IF EXISTS `<%= user %>`@`<%= db[:host] %>`;
+
+<% else -%>
+<%= "/* Managing DB: #{dbname} for user: #{user} */" -%>
+<% dbname, table = dbname.to_s.include?('.') ? dbname.to_s.split('.') : [dbname.to_s, '*'] %>
+
+CREATE DATABASE IF NOT EXISTS `<%= dbname %>`;
+
+CREATE USER IF NOT EXISTS `<%= user %>`@`<%= db[:host] %>`;
+
+<% "/* Updating password for #{user} */" -%>
+SET @update_passwd = (
+    SELECT IF(password != PASSWORD('<%= DanarchyDeploy::Helpers.decode_base64(params[:password]) %>'),
+    "ALTER USER `<%= user %>`@`<%= db[:host] %>`
+           IDENTIFIED BY '<%= DanarchyDeploy::Helpers.decode_base64(params[:password]) %>'",
+    "SELECT 1"
+    ) AS update_passwd FROM mysql.user
+    WHERE user = '<%= user %>'
+    AND host = '<%= db[:host] %>'
+);
+
+PREPARE STMT FROM @update_passwd;
+EXECUTE STMT;
+
+<% if db[:grant] -%>
+<% "/* Granting privileges to #{user} */" %>
+GRANT <%= db[:grant].join(', ') %>
+      ON <%= dbname %>.<%= table %>
+      TO `<%= user %>`@`<%= db[:host] %>`;
+<% end -%>
+
+<% if db[:revoke] -%>
+<% "/* Revoking privileges to #{user} */" %>
+REVOKE <%= db[:revoke].join(', ') %>
+      ON <%= dbname %>.<%= table %>
+      FROM `<%= user %>`@`<%= db[:host] %>`;
+
+<% end -%>
+<% end -%>
+<% end -%>
+<% end -%>
+
+FLUSH PRIVILEGES;
+DROP PROCEDURE IF EXISTS mysql.dropHostsForUser;

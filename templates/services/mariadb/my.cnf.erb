@@ -2,9 +2,8 @@
 
 # The following options will be passed to all MySQL clients
 [client]
-#password                                       = your_password
-port                                            = 3306
-socket                                          = /var/run/mysqld/mysqld.sock
+port                            = 3306
+socket                          = /var/run/mysqld/mysqld.sock
 
 [mysql]
 character-sets-dir=/usr/share/mariadb/charsets
@@ -38,7 +37,7 @@ character-sets-dir=/usr/share/mariadb/charsets
 
 # use [safe_mysqld] with mysql-3
 [mysqld_safe]
-err-log                                         = /var/log/mysql/mysqld.err
+err-log                         = <%= @variables[:logdir] + '/mysqld.err' %>
 
 # add a section [mysqld-4.1] or [mysqld-5.0] for specific configurations
 [mysqld]
@@ -48,9 +47,9 @@ user                            = mysql
 port                            = 3306
 socket                          = /var/run/mysqld/mysqld.sock
 pid-file                        = /var/run/mysqld/mysqld.pid
-log-error                       = /var/log/mysql/mysqld.err
+log-error                       = <%= @variables[:logdir] + '/mysqld.err' %>
 basedir                         = /usr
-datadir                         = <%= @variables[:datadir] ? @variables[:datadir] : '/var/lib/mysql' %>
+datadir                         = <%= @variables[:datadir] %>
 skip-external-locking
 key_buffer_size                 = 16M
 max_allowed_packet              = 4M
@@ -70,7 +69,7 @@ lc_messages                     = en_US
 bind-address                            = <%= @variables[:bind_address] ? @variables[:bind_address] : '127.0.0.1' %>
 skip-name-resolve
 
-log-bin					= /var/log/mysql/mysql-bin.log
+log-bin					= <%= @variables[:logdir] + '/mysql-bin.log' %>
 binlog_format				= MIXED
 binlog_expire_logs_seconds		= 604800 # 7 days binlogs
 server-id                               = 1
