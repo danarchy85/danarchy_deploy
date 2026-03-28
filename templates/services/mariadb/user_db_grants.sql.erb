@@ -24,54 +24,69 @@ BEGIN
 END //
 DELIMITER ;
 
-<% @variables.each do |user, params| -%>
-<%= "/* Cleaning up hosts not granted for user: #{user} */" -%>
-
-<% hosts = "'#{params[:databases].values.collect { |dbs| dbs[:host] }.join("', '")}'" -%>
+<% user_hosts = Hash.new -%>
+<% # Ruby: parse hosts for each user -%>
+<% @variables.each_value do |users| -%>
+<%   users.each do |u, params| -%>
+<%     user_hosts[u] || user_hosts[u] = Array.new -%>
+<%     user_hosts[u].push(params[:host]) -%>
+<%   end -%>
+<% end -%>
+<% user_hosts.each do |user, hosts| -%>
+<%= "/* Cleaning up hosts not granted for user: #{user} */" %>
+<% hosts = "'#{user_hosts[user].join("', '")}'" -%>
 CALL mysql.dropHostsForUser('<%= user %>', "<%= hosts %>", @user_host);
+<% end -%>
 
-<% params[:databases].each do |dbname, db| -%>
+<% @variables.each do |db, users| -%>
+<% dbname, table = db.to_s.include?('.') ? db.to_s.split('.') : [db.to_s, '*'] %>
+<%= "/* ====== Managing DB: #{dbname} ====== */" %>
+<% if dbname != '*' -%>
+CREATE DATABASE IF NOT EXISTS `<%= dbname %>`;
+<% end -%>
 
-<% if db[:action] == 'dropuser' -%>
+<% users.each do |user, params| -%>
+<% if params[:action] == 'dropuser' -%>
 <%= "/* Dropping user #{user} */" %>
-DROP USER IF EXISTS `<%= user %>`@`<%= db[:host] %>`;
+DROP USER IF EXISTS `<%= user %>`@`<%= params[:host] %>`;
 
 <% else -%>
-<%= "/* Managing DB: #{dbname} for user: #{user} */" -%>
-<% dbname, table = dbname.to_s.include?('.') ? dbname.to_s.split('.') : [dbname.to_s, '*'] %>
+<%= "/* Managing user: #{user} */" %>
+CREATE USER IF NOT EXISTS `<%= user %>`@`<%= params[:host] %>`;
 
-CREATE DATABASE IF NOT EXISTS `<%= dbname %>`;
-
-CREATE USER IF NOT EXISTS `<%= user %>`@`<%= db[:host] %>`;
-
-<% "/* Updating password for #{user} */" -%>
+<%= "/* Comparing and updating password for #{user} */" %>
 SET @update_passwd = (
     SELECT IF(password != PASSWORD('<%= DanarchyDeploy::Helpers.decode_base64(params[:password]) %>'),
-    "ALTER USER `<%= user %>`@`<%= db[:host] %>`
+    "ALTER USER `<%= user %>`@`<%= params[:host] %>`
            IDENTIFIED BY '<%= DanarchyDeploy::Helpers.decode_base64(params[:password]) %>'",
     "SELECT 1"
     ) AS update_passwd FROM mysql.user
     WHERE user = '<%= user %>'
-    AND host = '<%= db[:host] %>'
+    AND host = '<%= params[:host] %>'
 );
 
 PREPARE STMT FROM @update_passwd;
 EXECUTE STMT;
 
-<% if db[:grant] -%>
-<% "/* Granting privileges to #{user} */" %>
-GRANT <%= db[:grant].join(', ') %>
-      ON <%= dbname %>.<%= table %>
-      TO `<%= user %>`@`<%= db[:host] %>`;
+<% if params[:user_limits] -%>
+ALTER USER `<%= user %>`@`<%= params[:host] %>`
+      WITH <%= params[:user_limits] %>;
 <% end -%>
 
-<% if db[:revoke] -%>
-<% "/* Revoking privileges to #{user} */" %>
-REVOKE <%= db[:revoke].join(', ') %>
+<% if params[:grant] -%>
+<%= "/* Granting privileges on #{dbname} to #{user} */" %>
+GRANT <%= params[:grant].join(', ') %>
       ON <%= dbname %>.<%= table %>
-      FROM `<%= user %>`@`<%= db[:host] %>`;
-
+      TO `<%= user %>`@`<%= params[:host] %>`;
 <% end -%>
+
+<% if params[:revoke] -%>
+<%= "/* Revoking privileges on #{dbname} to #{user} */" %>
+REVOKE <%= params[:revoke].join(', ') %>
+      ON <%= dbname %>.<%= table %>
+      FROM `<%= user %>`@`<%= params[:host] %>`;
+<% end -%>
+
 <% end -%>
 <% end -%>
 <% end -%>
