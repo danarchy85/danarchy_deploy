@@ -103,18 +103,6 @@ if location == 'remote'
 elsif location == 'local'
   abort('Exiting! Local deployment must be run with sudo!') if Process.uid != 0
   puts "Deploying #{deployment[:hostname]} locally to #{`hostname`.chomp}."
-
-  if !options[:pretend]
-    puts ' ! Ctrl-c out if this is not what you want to do!'
-    10.downto(0) do |i|
-      trap('SIGINT') { abort("\nExiting!") }
-      print "\rDeploying in #{i} seconds. "
-      sleep(1)
-    end
-
-    puts "\nDeploying!"
-  end
-
   deployment = DanarchyDeploy::LocalDeploy.new(deployment, options)
 end
 
