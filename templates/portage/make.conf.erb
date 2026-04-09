@@ -14,9 +14,9 @@ defaults = {
   :INPUT_DEVICES => "evdev keyboard"
 }
 
-features = defaults.merge(@variables[:features]) if @variables[:features]
+options = defaults.merge(@variables[:options]) if @variables[:options]
 
-features.each do |k, v| -%>
+options.each do |k, v| -%>
 <%= k.to_s.upcase + "=\"#{v}\"" %>
 <% end -%>
 
