@@ -17,8 +17,24 @@ module DanarchyDeploy
           stderr = !err.empty? ? err : nil
         end
 
-        puts "------\nErrored at: #{caller_locations.first.label} Line: #{caller_locations.first.lineno}\nSTDERR: ", stderr, '------' if stderr
-        puts "------\nSTDOUT: ", stdout, '------' if stdout && options[:ssh_verbose]
+        if stderr
+          puts <<EOF
+!-----!
+Errored at: #{caller_locations.first.label} Line: #{caller_locations.first.lineno}
+Command: #{command}
+STDERR:
+#{stderr}
+!-----!
+EOF
+        elsif stdout && options[:ssh_verbose]
+          puts <<EOF
+-------
+STDOUT: #{stdout}
+-------
+EOF
+        end
+        # puts "------\nErrored at: #{caller_locations.first.label} Line: #{caller_locations.first.lineno}\nSTDERR: ", stderr, '------' if stderr
+        # puts "------\nSTDOUT: ", stdout, '------' if stdout && options[:ssh_verbose]
       end
       
       { pid: pid, stdout: stdout, stderr: stderr }
