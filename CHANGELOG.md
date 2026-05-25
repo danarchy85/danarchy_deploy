@@ -1,6 +1,11 @@
 patch_0.2.14
 - Fix MySQL user_grants.sql.erb CREATE USER
-- Make MySQL user_grants.sql.erb update passwords
+- Make MySQL user_grants.sql.erb update passwords, remove unassigned hosts
+- Remove 10 second wait in exe/danarchy_deploy
+- builtin::portage/make.conf.erb:
+  - MAKEOPTS with lower default -j setting
+  - Cleanup variables options merge
+  - add bash-completion as default USE flag
 
 patch_0.2.13
 - Pid class to return LocalDeploy if already running

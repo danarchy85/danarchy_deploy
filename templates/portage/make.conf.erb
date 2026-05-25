@@ -5,18 +5,16 @@ CXXFLAGS="${COMMON_FLAGS}"
 FCFLAGS="${COMMON_FLAGS}"
 FFLAGS="${COMMON_FLAGS}"
 
-MAKEOPTS="-j<%= @variables[:makeopts_j] ? @variables[:makeopts_j] : `nproc`.to_i + 1 %> -l<%= (`nproc`.to_f * 0.85) %>"
+MAKEOPTS="-j<%= @variables[:makeopts] ? @variables[:makeopts] : (`nproc`.to_f * 0.5).round %> -l<%= (`nproc`.to_f * 0.85) %>"
 CPU_FLAGS_X86="<%= `cpuid2cpuflags`.split(': ').last.chomp %>"
 
 <%
 defaults = {
-  :USE => "bindist logrotate",
+  :USE => "bindist logrotate bash-completion",
   :INPUT_DEVICES => "evdev keyboard"
 }
 
-options = defaults.merge(@variables[:options]) if @variables[:options]
-
-options.each do |k, v| -%>
+defaults.merge(@variables[:options] || Hash.new).each do |k, v| -%>
 <%= k.to_s.upcase + "=\"#{v}\"" %>
 <% end -%>
 
